@@ -75,7 +75,7 @@ cam_bands = 4;        // number of cam layers on the lever
 $fn = 128;
 
 /* [Hidden] */
-lever_open = true;    // used by the build checks
+lever_open = 1;       // collar opening 0..1, used by the build checks
 lever_theta = 0;
 
 // ---------------------------------------------------------------------
@@ -99,8 +99,8 @@ a0o = 180 - (180 - a0) * neutral_r / (neutral_r + open_dr);
 function rot2(p, a) = [p[0] * cos(a) - p[1] * sin(a), p[0] * sin(a) + p[1] * cos(a)];
 function TA(p) = rot2(rot2(p, -a0) + [open_dr, 0], a0o);
 function TB(p) = rot2(rot2(p, a0) + [open_dr, 0], -a0o);
-module move_A(open) { if (open) rotate(a0o) translate([open_dr, 0]) rotate(-a0) children(); else children(); }
-module move_B(open) { if (open) rotate(-a0o) translate([open_dr, 0]) rotate(a0) children(); else children(); }
+module move_A(open) rotate(st_a(open)) translate([st_dr(open), 0]) rotate(-a0) children();
+module move_B(open) rotate(-st_a(open)) translate([st_dr(open), 0]) rotate(a0) children();
 
 // Cam: the eccentricity is solved so that, from fully open to dead
 // centre, the cam travel equals the slit closure needed for `squeeze`
@@ -142,8 +142,9 @@ echo(str("slit closure at cam=", draw_of(cam_e), " cam_band_h=", cam_band_h));
 // ---------------------------------------------------------------------
 // Collar (PETG C-ring) and TPU spring liner, in either state
 // ---------------------------------------------------------------------
-function st_dr(open) = open ? open_dr : 0;
-function st_a(open) = open ? a0o : a0;
+// `open` is how open the collar is: 0 = closed on the wood, 1 = as printed
+function st_dr(open) = open * open_dr;
+function st_a(open) = 180 - (180 - a0) * neutral_r / (neutral_r + st_dr(open));
 
 module half_plane_at(a) rotate(a) translate([-200, 0]) square([400, 200]);
 
@@ -353,20 +354,22 @@ module wood_3d() color("BurlyWood") translate([0, 0, (clamp_h - wood_h) / 2]) cy
 // ---------------------------------------------------------------------
 // What to show / export
 // ---------------------------------------------------------------------
-if (part == "print") { color("SteelBlue") petg_3d(true, -open_angle); color("OrangeRed") tpu_3d(true); }
-else if (part == "closed") { wood_3d(); color("SteelBlue") petg_3d(false, 0); color("OrangeRed") tpu_3d(false); }
-else if (part == "open") { wood_3d(); color("SteelBlue") petg_3d(true, -open_angle); color("OrangeRed") tpu_3d(true); }
-else if (part == "petg") petg_3d(true, -open_angle);
-else if (part == "petg_closed") petg_3d(false, 0);
-else if (part == "tpu_closed") tpu_3d(false);
-else if (part == "tpu") tpu_3d(true);
-else if (part == "collar_open") collar_3d(true);
-else if (part == "collar_closed") collar_3d(false);
+if (part == "print") { color("SteelBlue") petg_3d(1, -open_angle); color("OrangeRed") tpu_3d(1); }
+else if (part == "closed") { wood_3d(); color("SteelBlue") petg_3d(0, 0); color("OrangeRed") tpu_3d(0); }
+else if (part == "open") { wood_3d(); color("SteelBlue") petg_3d(1, -open_angle); color("OrangeRed") tpu_3d(1); }
+else if (part == "petg") petg_3d(1, -open_angle);
+else if (part == "petg_closed") petg_3d(0, 0);
+else if (part == "tpu_closed") tpu_3d(0);
+else if (part == "tpu") tpu_3d(1);
+else if (part == "collar_open") collar_3d(1);
+else if (part == "collar_closed") collar_3d(0);
+else if (part == "collar_at") collar_3d(lever_open);
+else if (part == "tpu_at") tpu_3d(lever_open);
 else if (part == "lever") lever_3d(lever_open, lever_theta);
 else if (part == "earA_closed") linear_extrude(clamp_h) earA_2d();
 else if (part == "bgroup_closed") { linear_extrude(clamp_h) arm_2d(); knuckle_layers() knuckle_2d(); linear_extrude(clamp_h) pin_2d(); }
-else if (part == "ring_closed") linear_extrude(clamp_h) ring_2d(false);
-else if (part == "ring_open") linear_extrude(clamp_h) ring_2d(true);
+else if (part == "ring_closed") linear_extrude(clamp_h) ring_2d(0);
+else if (part == "ring_open") linear_extrude(clamp_h) ring_2d(1);
 echo(str("GEOM ", "{\"P\":[", P[0], ",", P[1], "],\"a0\":", a0, ",\"a0o\":", a0o, ",\"open_dr\":", open_dr,
          ",\"open_angle\":", open_angle, ",\"cam_e\":", cam_e, ",\"cam_r\":", cam_r, ",\"lobe\":", lobe,
          ",\"shell_r\":", shell_r, ",\"tip_r\":", tip_r, ",\"cam_band_h\":", cam_band_h, "}"));
