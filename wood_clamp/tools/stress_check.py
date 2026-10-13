@@ -61,7 +61,7 @@ def lever_case(chk, c, row, hand_T, name, max_vol, handle_len=48.0):
     P = np.array(row["pivot"]); cp = np.array(row["contact"]); nrm = np.array(row["normal"])
     bl = bands(g)
     rxy = np.linalg.norm(nodes[:, :2] - P, axis=1)
-    hole = (np.abs(rxy - 3.45) < 0.12) & in_bands(nodes[:, 2], bl)
+    hole = (np.abs(rxy - g.get("pin_hole_r", 3.45)) < 0.12) & in_bands(nodes[:, 2], bl)
     # friction on the lever opposes its sliding (lever turns +theta = CCW)
     r = cp - P; v = np.array([-r[1], r[0]]); v -= nrm * (v @ nrm); t_hat = v / (np.linalg.norm(v) + 1e-12)
     Fcon = row["Fc"] * nrm - MU * row["Fc"] * t_hat
@@ -106,7 +106,7 @@ def collar_case(chk, c, row, p_wood, name, max_vol):
     rp = np.linalg.norm(nodes[:, :2] - P, axis=1)
     R = -Fcon                                                 # pin force on the lever
     d = (nodes[:, :2] - P) / (rp[:, None] + 1e-9)
-    pin = (np.abs(rp - 3.0) < 0.12) & in_bands(nodes[:, 2], bl) & ((d @ (R / np.linalg.norm(R))) > math.cos(math.radians(70)))
+    pin = (np.abs(rp - (g.get("pin_hole_r", 3.45) - 0.45)) < 0.12) & in_bands(nodes[:, 2], bl) & ((d @ (R / np.linalg.norm(R))) > math.cos(math.radians(70)))
     loads.append((np.where(pin)[0], np.r_[-R, 0]))            # lever pushes the pin
     bore_r = g["shell_r"] - 4.0
     rr = np.linalg.norm(nodes[:, :2], axis=1)

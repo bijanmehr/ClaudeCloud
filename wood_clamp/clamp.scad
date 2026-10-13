@@ -57,7 +57,8 @@ slit_gap = 1.2;
 earA_w = 6.0;         // thickness of the ear the cam pushes on
 earB_w = 6.0;         // thickness of the arm root on the other side
 arm_t = 7.0;          // thickness of the arm that reaches over ear A
-pin_d = 6.0;          // hinge pin (printed in place)
+pin_d = 8.0;          // hinge pin (printed in place); 8 mm keeps the stress across its layers low
+pin_fillet = 0.4;     // 45 deg fillet where the pin meets each knuckle (sits inside the hinge gap)
 cam_wall = 1.6;       // cam wall around the pin hole
 over_centre = 10;     // degrees past dead centre when closed (the lock)
 open_angle = 135;     // lever travel from closed to fully open (as printed)
@@ -396,7 +397,16 @@ module collar_3d(open) {
         linear_extrude(clamp_h) arm_2d();
         knuckle_layers() knuckle_2d();
         linear_extrude(clamp_h) pin_2d();
+        pin_fillets();
     }
+}
+
+// small 45 deg fillets where the pin leaves each knuckle (inside the 0.6 mm
+// hinge gap, clear of the cam rings) to take the sharp corner out of the
+// pin's most loaded spot
+module pin_fillets() for (i = [0 : cam_bands]) {
+    if (i > 0) translate([P[0], P[1], knuckle_z(i) - pin_fillet]) cylinder(r1 = pin_r, r2 = pin_r + pin_fillet, h = pin_fillet + eps, $fn = 64);
+    if (i < cam_bands) translate([P[0], P[1], knuckle_z(i) + knuckle_height(i) - eps]) cylinder(r1 = pin_r + pin_fillet, r2 = pin_r, h = pin_fillet + eps, $fn = 64);
 }
 
 // moving PETG: the lever (handle full height, cam in its own layers)
@@ -434,7 +444,7 @@ else if (part == "collar_at") collar_3d(lever_open);
 else if (part == "tpu_at") tpu_3d(lever_open);
 else if (part == "lever") lever_3d(lever_open, lever_theta);
 else if (part == "earA_closed") linear_extrude(clamp_h) earA_2d();
-else if (part == "bgroup_closed") { linear_extrude(clamp_h) arm_2d(); knuckle_layers() knuckle_2d(); linear_extrude(clamp_h) pin_2d(); }
+else if (part == "bgroup_closed") { linear_extrude(clamp_h) arm_2d(); knuckle_layers() knuckle_2d(); linear_extrude(clamp_h) pin_2d(); pin_fillets(); }
 else if (part == "ring_closed") linear_extrude(clamp_h) ring_2d(0);
 else if (part == "ring_open") linear_extrude(clamp_h) ring_2d(1);
 else if (part == "ring_at") linear_extrude(clamp_h) ring_2d(lever_open);

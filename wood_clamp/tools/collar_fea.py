@@ -50,7 +50,8 @@ def run(chk, kp=0.73, h_max=1.6, stroke_eff=None, label="typical"):
     ear = np.where((np.linalg.norm(nodes[:, :2] - cp, axis=1) < 1.5) & inb)[0]
     rp = np.linalg.norm(nodes[:, :2] - P, axis=1)
     d = (nodes[:, :2] - P) / (rp[:, None] + 1e-9)
-    pin = np.where((np.abs(rp - 3.0) < 0.1) & inb & ((d @ -nrm) > math.cos(math.radians(70))))[0]
+    fea_pin_r = g.get("pin_hole_r", 3.45) - 0.45
+    pin = np.where((np.abs(rp - fea_pin_r) < 0.1) & inb & ((d @ -nrm) > math.cos(math.radians(70))))[0]
     # write deck with springs to fixed ground nodes placed radially inside the bore
     work = f"{chk}/fea"
     os.makedirs(work, exist_ok=True)
@@ -95,7 +96,10 @@ def run(chk, kp=0.73, h_max=1.6, stroke_eff=None, label="typical"):
         out.update(cam_force=F * scale, squeeze_min=float(sq.min()), squeeze_mean=float(sq.mean()),
                    squeeze_max=float(sq.max()), pressure_mean=float(kp * sq.mean()),
                    vm_p995=float(np.percentile(vm, 99.5)), vm_max=float(vm.max()), vm_at=nodes[np.argmax(vm)].round(1).tolist(),
-                   szz_max=float(S[:, 2].max()), szz_at=nodes[np.argmax(S[:, 2])].round(1).tolist())
+                   szz_max=float(S[:, 2].max()), szz_at=nodes[np.argmax(S[:, 2])].round(1).tolist(),
+                   szz_near_pin=float(S[rp < fea_pin_r + 3, 2].max()),
+                   szz_p995=float(np.percentile(S[:, 2], 99.5)),
+                   fins_stuck_scale=430.0 / (F * scale))
         np.savez_compressed(f"{work}/{name}.npz", nodes=nodes, S=S, U=U, bore=bore, sq=sq)
     return out
 
