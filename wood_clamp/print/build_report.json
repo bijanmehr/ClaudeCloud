@@ -37,7 +37,7 @@
   ],
   "slice_test": {
    "filament_mm": "48793.39, 7215.80",
-   "time": "15h 18m 11s",
+   "time": "15h 18m 7s",
    "layers": 350,
    "tool_changes": 352,
    "warnings": [

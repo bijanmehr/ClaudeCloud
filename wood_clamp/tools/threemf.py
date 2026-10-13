@@ -54,6 +54,10 @@ def write_multimaterial_3mf(path, object_name, parts, offset=(0.0, 0.0, 0.0)):
         'xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02" '
         'xmlns:slic3rpe="http://schemas.slic3r.org/3mf/2017/06">\n'
         '<metadata name="slic3rpe:Version3mf">1</metadata>\n'
+        # Bambu Studio only reads Slic3r_PE_model.config (the per-part
+        # filaments and the support blocker) when this names PrusaSlicer;
+        # otherwise it loads all parts as one mesh on filament 1
+        '<metadata name="Application">PrusaSlicer-2.7.2</metadata>\n'
         f'<metadata name="Title">{object_name}</metadata>\n'
         '<resources>\n<object id="1" type="model">\n<mesh>\n<vertices>\n'
         + "\n".join(vert_lines)

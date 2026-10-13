@@ -35,7 +35,7 @@ one object and have to be loaded together (see the next section).
 | `hinge_test_PETG.stl` + `hinge_test_TPU.stl` | A 21 mm tall working slice of the clamp (one cam ring). **Print this first.** |
 | `wood_clamp_PETG.stl` + `wood_clamp_TPU.stl` | The full clamp. PETG = collar and lever; TPU = the spring lining |
 | `*_BambuStudio_H2D.3mf` | The same, as one 3MF (also has a support blocker over the hinge). See the notes below |
-| `*_PrusaSlicer.3mf` | The same, for PrusaSlicer |
+| `*_PrusaSlicer.3mf` | The same, for PrusaSlicer (Bambu Studio reads it correctly too) |
 | `build_report.json` | Mesh checks and slice test for the files above |
 
 All files are for **38.0 mm wood**. If yours measures differently, see
@@ -198,8 +198,14 @@ diameter + 0.44). If it comes out larger by some amount, rebuild with
   with small fillets where it meets each knuckle, and in the knuckle layers
   the knuckle is filled out to the end of the arm, which removed a sharp notch.
 - **Print files:** watertight meshes, exactly one collar, one lever and one
-  liner, no PETG/TPU overlap. They slice with two extruders in PrusaSlicer, and
-  the Bambu 3MF was checked against Bambu Studio's own importer logic.
+  liner, no PETG/TPU overlap. They slice with two extruders in PrusaSlicer.
+  They were also loaded with Bambu Studio's own loading code (version
+  02.08.04, built without its GUI; see `tools/bambu_load/`):
+  - Every 3MF loads as one object, with PETG on filament 1, TPU on filament 2
+    and the hinge support blocker, at the same plate position.
+  - Importing the two STLs together and answering Yes keeps the lining
+    exactly in place. Both parts then start on filament 1, which is why step
+    4 above is needed.
 - **Not yet done:** a real print. Print the hinge test first.
 
 ## Customising

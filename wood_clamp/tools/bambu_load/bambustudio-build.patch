@@ -1,0 +1,55 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index d83b570..92b9d4c 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -968,3 +968,8 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NOT FLATPAK)
+ endif ()
+ 
+ configure_file(${LIBDIR}/platform/unix/fhs.hpp.in ${LIBDIR_BIN}/platform/unix/fhs.hpp)
++
++# [bbsbuild patch] optional out-of-tree harness linked against libslic3r
++if (BBS_LOAD_HARNESS_DIR)
++    add_subdirectory(${BBS_LOAD_HARNESS_DIR} ${CMAKE_BINARY_DIR}/bbs_load_harness)
++endif ()
+diff --git a/src/libslic3r/CMakeLists.txt b/src/libslic3r/CMakeLists.txt
+index 8366842..663c9c0 100644
+--- a/src/libslic3r/CMakeLists.txt
++++ b/src/libslic3r/CMakeLists.txt
+@@ -4,6 +4,10 @@ project(libslic3r)
+ include(PrecompiledHeader)
+ 
+ string(TIMESTAMP COMPILE_TIME %Y%m%d-%H%M%S)
++# [bbsbuild patch] allow pinning the build time so a re-configure does not touch libslic3r_version.h (which forces a full rebuild)
++if(SLIC3R_FIXED_BUILD_TIME)
++    set(COMPILE_TIME ${SLIC3R_FIXED_BUILD_TIME})
++endif()
+ set(SLIC3R_BUILD_TIME ${COMPILE_TIME})
+ 
+ if("${BBL_RELEASE_TO_PUBLIC}" STREQUAL "0")
+@@ -585,7 +589,13 @@ if(MSVC AND NOT DEFINED OpenCV_ARCH)
+     endif()
+     unset(_slic3r_gen_platform)
+ endif()
+-find_package(OpenCV REQUIRED core)
++find_package(OpenCV REQUIRED core imgproc imgcodecs)
++# [bbsbuild patch] Ubuntu's OpenCV has no opencv_world; provide an interface target with the split libs
++if(NOT TARGET opencv_world)
++    add_library(opencv_world INTERFACE)
++    target_link_libraries(opencv_world INTERFACE opencv_core opencv_imgproc opencv_imgcodecs)
++    target_include_directories(opencv_world INTERFACE ${OpenCV_INCLUDE_DIRS})
++endif()
+ find_package(assimp REQUIRED)
+ cmake_policy(POP)
+ 
+@@ -621,6 +631,11 @@ if (CMAKE_COMPILER_IS_GNUCC AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 14.1)
+ endif()
+ 
+ target_link_libraries(libslic3r_cgal PRIVATE ${_cgal_tgt} libigl mcut)
++# [bbsbuild patch] libslic3r_cgal uses BOOST_LOG but does not link boost_libs, so with shared system boost (SLIC3R_STATIC=0)
++# it referenced the static-boost (v2s_) symbols. Use the same BOOST_LOG_DYN_LINK define as the rest of libslic3r.
++if(NOT SLIC3R_STATIC)
++    target_compile_definitions(libslic3r_cgal PRIVATE BOOST_LOG_DYN_LINK)
++endif()
+ if(SLIC3R_HAS_OPENMESHCRAFT_BOOLEAN)
+     # GMP/MPFR usually come with CGAL/DEP, but may not be visible to find_library
+     # in non-standard layouts. Missing deps used to fall back to MCUT silently;
