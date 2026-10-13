@@ -28,7 +28,7 @@ CLAMP_H = 70.0
 FIN_LEN = 65.0       # fin length minus the tapered ends
 
 
-def simulate(chk_dir, kp, wood_offset=0.0, n=60):
+def simulate(chk_dir, kp, wood_offset=0.0, n=60, fit_gap=0.15, wall=None):
     c = K.Clamp(chk_dir)
     g = c.g
     S = c.sections(10.8)
@@ -36,14 +36,15 @@ def simulate(chk_dir, kp, wood_offset=0.0, n=60):
     P0 = g["P"]
     wood_r = g["tip_r"] + 0.45          # nominal wood radius used by the model
     area = 2 * math.pi * wood_r * FIN_LEN
-    rn = g["shell_r"] - WALL / 2
-    I_ring = CLAMP_H * WALL ** 3 / 12
+    wall = wall or (6.0 if g["shell_r"] > 26 else 4.0)
+    rn = g["shell_r"] - wall / 2
+    I_ring = CLAMP_H * wall ** 3 / 12
     thetas = np.linspace(-g["open_angle"], 0, n)
     fs = np.array([c.contact_f(S, t) for t in thetas])
-    s = np.clip((1 - fs) * g["open_dr"] + wood_offset / 2, 0, None)   # squeeze on the wood
+    s = np.clip((1 - fs) * g["open_dr"] - fit_gap + wood_offset / 2, 0, None)   # squeeze on the wood
     dr = (1 - fs) * g["open_dr"]                                        # collar radius change
     # closure measured along the cam push direction, for d(U)/d(closure)
-    closure = (1 - fs) * c.draw_total if hasattr(c, "draw_total") else (1 - fs) * 4.0156
+    closure = (1 - fs) * g.get("draw", 5.698)          # slit closure along the cam line
     U = 0.5 * kp * s ** 2 * area + 0.5 * E_PETG * I_ring * (dr / rn ** 2) ** 2 * 2 * math.pi * rn
     with np.errstate(divide="ignore", invalid="ignore"):
         Fc = np.gradient(U, closure)

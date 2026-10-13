@@ -65,7 +65,7 @@ cam_slack = 0.5;      // cam-to-ear gap when open (also a print clearance)
 handle_th = 5.0;      // handle thickness
 neck_d = 8.0;         // width of the lever neck and of the cam-to-handle bridges
 root_fillet = 2.0;    // fillet where ear A and the arm root meet the collar
-handle_end = 128;     // handle tip, degrees around the collar from the slit
+handle_end = 160;     // handle tip, degrees around the collar from the slit (longer = easier)
 
 /* [Print-in-place clearances] */
 layer_h = 0.2;        // slicer layer height: hinge layers are snapped to it
@@ -353,14 +353,16 @@ module handle_2d() {
     // band hugging the collar
     intersection() {
         difference() { circle(r = hr_out); circle(r = hr_in); }
-        rotate(handle_start) square([100, 100]);
-        rotate(handle_end) mirror([0, 1]) square([100, 100]);
+        sector(handle_start, handle_end);
     }
     // rounded tip with a finger lip
     rotate(handle_end) translate([(hr_in + hr_out) / 2 + 0.8, 0]) circle(d = handle_th + 1.6);
     // stop nub: touches the collar when the cam is just past dead centre
     rotate(handle_end - 10) translate([shell_r + 0.05, -2]) square([hr_in - shell_r, 4]);
 }
+
+// pie slice from angle a1 to a2 (any span below 360 deg)
+module sector(a1, a2, r = 200) polygon(concat([[0, 0]], [for (i = [0 : 48]) r * dir2(a1 + (a2 - a1) * i / 48)]));
 
 module lever_at(theta) {
     translate(P) rotate(theta) translate(-P) children();
@@ -421,6 +423,7 @@ else if (part == "earA_closed") linear_extrude(clamp_h) earA_2d();
 else if (part == "bgroup_closed") { linear_extrude(clamp_h) arm_2d(); knuckle_layers() knuckle_2d(); linear_extrude(clamp_h) pin_2d(); }
 else if (part == "ring_closed") linear_extrude(clamp_h) ring_2d(0);
 else if (part == "ring_open") linear_extrude(clamp_h) ring_2d(1);
+else if (part == "ring_at") linear_extrude(clamp_h) ring_2d(lever_open);
 echo(str("GEOM ", "{\"P\":[", P[0], ",", P[1], "],\"a0\":", a0, ",\"a0o\":", a0o, ",\"open_dr\":", open_dr,
          ",\"open_angle\":", open_angle, ",\"cam_e\":", cam_e, ",\"cam_r\":", cam_r, ",\"lobe\":", lobe,
-         ",\"shell_r\":", shell_r, ",\"tip_r\":", tip_r, ",\"cam_band_h\":", cam_band_h, "}"));
+         ",\"shell_r\":", shell_r, ",\"tip_r\":", tip_r, ",\"cam_band_h\":", cam_band_h, ",\"draw\":", draw_of(cam_e), ",\"fit_gap\":", fit_gap, "}"));

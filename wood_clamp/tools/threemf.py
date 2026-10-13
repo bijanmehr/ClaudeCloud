@@ -78,3 +78,86 @@ def write_multimaterial_3mf(path, object_name, parts, offset=(0.0, 0.0, 0.0)):
         z.writestr("_rels/.rels", _RELS)
         z.writestr("3D/3dmodel.model", model)
         z.writestr("Metadata/Slic3r_PE_model.config", "\n".join(cfg))
+
+
+_BBS_NS = ('xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02" '
+           'xmlns:BambuStudio="http://schemas.bambulab.com/package/2021" '
+           'xmlns:p="http://schemas.microsoft.com/3dmanufacturing/production/2015/06"')
+_IDENT = "1 0 0 0 1 0 0 0 1 0 0 0"
+_IDENT16 = "1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1"
+
+
+def _mesh_xml(mesh):
+    v = "\n".join(f'<vertex x="{x:.5f}" y="{y:.5f}" z="{z:.5f}"/>' for x, y, z in mesh.vertices)
+    t = "\n".join(f'<triangle v1="{a}" v2="{b}" v3="{c}"/>' for a, b, c in mesh.faces)
+    return f"<mesh>\n<vertices>\n{v}\n</vertices>\n<triangles>\n{t}\n</triangles>\n</mesh>"
+
+
+def write_bambu_3mf(path, object_name, parts, offset=(0.0, 0.0, 0.0)):
+    """One object made of several parts, laid out the way Bambu Studio /
+    OrcaSlicer save their own projects: the parts live in
+    3D/Objects/object_1.model, the build object assembles them as
+    components, and Metadata/model_settings.config gives each part its
+    filament number (extruder 1, 2, ... = filament slots in the project).
+
+    parts: list of (part_name, trimesh.Trimesh, filament_number starting at 1).
+    """
+    sub = "/3D/Objects/object_1.model"
+    objs = "\n".join(f'<object id="{i + 1}" type="model">\n{_mesh_xml(m)}\n</object>' for i, (_, m, _) in enumerate(parts))
+    sub_model = (f'<?xml version="1.0" encoding="UTF-8"?>\n<model unit="millimeter" xml:lang="en-US" {_BBS_NS} '
+                 f'requiredextensions="p">\n<resources>\n{objs}\n</resources>\n<build/>\n</model>\n')
+    main_id = len(parts) + 1
+    comps = "\n".join(f'<component p:path="{sub}" objectid="{i + 1}" transform="{_IDENT}"/>' for i in range(len(parts)))
+    ox, oy, oz = offset
+    main = (f'<?xml version="1.0" encoding="UTF-8"?>\n<model unit="millimeter" xml:lang="en-US" {_BBS_NS} '
+            f'requiredextensions="p">\n<metadata name="Title">{object_name}</metadata>\n'
+            f'<resources>\n<object id="{main_id}" type="model">\n<components>\n{comps}\n</components>\n</object>\n</resources>\n'
+            f'<build>\n<item objectid="{main_id}" transform="1 0 0 0 1 0 0 0 1 {ox:.4f} {oy:.4f} {oz:.4f}" printable="1"/>\n'
+            f'</build>\n</model>\n')
+    rels = ('<?xml version="1.0" encoding="UTF-8"?>\n'
+            '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+            f'<Relationship Target="{sub}" Id="rel-1" Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"/>'
+            '</Relationships>\n')
+    cfg = ['<?xml version="1.0" encoding="UTF-8"?>', "<config>", f'  <object id="{main_id}">',
+           f'    <metadata key="name" value={quoteattr(object_name)}/>',
+           f'    <metadata key="extruder" value="{parts[0][2]}"/>']
+    for i, (name, _, filament) in enumerate(parts):
+        cfg += [f'    <part id="{i + 1}" subtype="normal_part">',
+                f'      <metadata key="name" value={quoteattr(name)}/>',
+                f'      <metadata key="matrix" value="{_IDENT16}"/>',
+                f'      <metadata key="extruder" value="{filament}"/>',
+                "    </part>"]
+    cfg += ["  </object>", "</config>", ""]
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as z:
+        z.writestr("[Content_Types].xml", _CONTENT_TYPES)
+        z.writestr("_rels/.rels", _RELS)
+        z.writestr("3D/3dmodel.model", main)
+        z.writestr("3D/_rels/3dmodel.model.rels", rels)
+        z.writestr(sub.lstrip("/"), sub_model)
+        z.writestr("Metadata/model_settings.config", "\n".join(cfg))
+
+
+def check_bambu_3mf(path):
+    """Re-read the file the way Bambu Studio's importer resolves it and
+    return [(part name, filament, triangle count)] - a structural self-test."""
+    import xml.etree.ElementTree as ET
+    ns = {"m": "http://schemas.microsoft.com/3dmanufacturing/core/2015/02",
+          "p": "http://schemas.microsoft.com/3dmanufacturing/production/2015/06"}
+    with zipfile.ZipFile(path) as z:
+        main = ET.fromstring(z.read("3D/3dmodel.model"))
+        rels = ET.fromstring(z.read("3D/_rels/3dmodel.model.rels"))
+        targets = [r.get("Target") for r in rels]
+        subs = {t: ET.fromstring(z.read(t.lstrip("/"))) for t in targets}
+        cfg = ET.fromstring(z.read("Metadata/model_settings.config"))
+    item = main.find("m:build/m:item", ns)
+    obj = [o for o in main.find("m:resources", ns) if o.get("id") == item.get("objectid")][0]
+    cfg_obj = [o for o in cfg if o.get("id") == obj.get("id")][0]
+    out = []
+    for comp in obj.find("m:components", ns):
+        sub_path = comp.get("{%s}path" % ns["p"])
+        sub_obj = [o for o in subs[sub_path].find("m:resources", ns) if o.get("id") == comp.get("objectid")][0]
+        part = [p for p in cfg_obj.findall("part") if p.get("id") == comp.get("objectid")][0]
+        meta = {m.get("key"): m.get("value") for m in part.findall("metadata")}
+        ntri = len(sub_obj.find("m:mesh/m:triangles", ns))
+        out.append((meta["name"], int(meta["extruder"]), ntri))
+    return out

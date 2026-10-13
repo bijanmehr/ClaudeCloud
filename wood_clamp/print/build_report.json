@@ -1,0 +1,86 @@
+{
+ "wood_clamp": {
+  "ok": true,
+  "petg_watertight": true,
+  "tpu_watertight": true,
+  "bodies_petg_tpu": [
+   2,
+   1
+  ],
+  "petg_tpu_overlap_mm3": 0.0,
+  "footprint_mm": [
+   116.2,
+   98.3,
+   70.0
+  ],
+  "petg_cm3": 127.7,
+  "tpu_cm3": 15.3,
+  "bambu_3mf_parts": [
+   [
+    "wood_clamp collar + lever (PETG, left nozzle)",
+    1,
+    12428
+   ],
+   [
+    "wood_clamp spring liner (TPU 95A, right nozzle)",
+    2,
+    4224
+   ]
+  ],
+  "slice_test": {
+   "filament_mm": "43269.99, 7207.11",
+   "time": "13h 45m 47s",
+   "layers": 350,
+   "tool_changes": 352,
+   "warnings": [
+    "65 => Searching support spots",
+    "print warning: Detected print stability issues:",
+    "Floating bridge anchors, Long bridging extrusions",
+    "Consider enabling supports.",
+    "89 => Calculating overhanging perimeters"
+   ]
+  }
+ },
+ "hinge_test": {
+  "ok": true,
+  "petg_watertight": true,
+  "tpu_watertight": true,
+  "bodies_petg_tpu": [
+   2,
+   1
+  ],
+  "petg_tpu_overlap_mm3": 0.0,
+  "footprint_mm": [
+   116.2,
+   98.3,
+   21.4
+  ],
+  "petg_cm3": 39.0,
+  "tpu_cm3": 4.6,
+  "bambu_3mf_parts": [
+   [
+    "hinge_test collar + lever (PETG, left nozzle)",
+    1,
+    5240
+   ],
+   [
+    "hinge_test spring liner (TPU 95A, right nozzle)",
+    2,
+    4224
+   ]
+  ],
+  "slice_test": {
+   "filament_mm": "13364.29, 2192.44",
+   "time": "4h 15m 23s",
+   "layers": 107,
+   "tool_changes": 109,
+   "warnings": [
+    "65 => Searching support spots",
+    "print warning: Detected print stability issues:",
+    "Floating bridge anchors, Long bridging extrusions",
+    "Consider enabling supports.",
+    "89 => Calculating overhanging perimeters"
+   ]
+  }
+ }
+}

@@ -13,3 +13,12 @@ openscad -D 'part="lever"' -D 'lever_open=1' -D 'lever_theta=-135' "$@" -o build
 openscad -q -D 'part="petg"' "$@" -o build/petg.stl clamp.scad
 openscad -q -D 'part="tpu"' "$@" -o build/tpu.stl clamp.scad
 openscad -q -D 'part="tpu_closed"' "$@" -o build/tpu_closed.stl clamp.scad
+# every printed part must be one connected solid: PETG = collar + lever, TPU = liner
+python3 - <<'PY'
+import sys, trimesh
+for f, n in (("build/petg.stl", 2), ("build/tpu.stl", 1), ("build/chk/lever_closed.stl", 1), ("build/chk/bgroup_closed.stl", 1)):
+    m = trimesh.load(f); b = len(m.split(only_watertight=False))
+    print(f"{f}: {b} solid(s), watertight {m.is_watertight}")
+    if b != n or not m.is_watertight:
+        sys.exit(f"CONNECTIVITY FAIL: {f} has {b} solids, expected {n}")
+PY
