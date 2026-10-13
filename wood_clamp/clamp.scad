@@ -319,7 +319,21 @@ module earA_keepout() offset(delta = xy_gap + 0.15) hull() for (f = [0, 0.25, 0.
 // Hinge knuckle (fixed, part of side B): same footprint as the cam as
 // printed, so each cam layer prints on top of a knuckle and vice versa
 knuckle_c = P + cam_e * dir2(lobe_open);
-module knuckle_2d() difference() { knuckle_body(); earA_keepout(); }
+web_fillet = 1.5;
+module knuckle_2d() difference() {
+    union() {
+        knuckle_body();
+        // in knuckle layers, fill out to the post across its whole sector (the
+        // lever only passes here in its own cam layers), with fillets, so the
+        // knuckle joins the post along the full arc instead of at a sharp notch
+        intersection() {
+            offset(r = -web_fillet) offset(delta = web_fillet) union() { knuckle_body(); knuckle_post_fill(); }
+            translate(P) sector(-80, -5);
+        }
+    }
+    earA_keepout();
+}
+module knuckle_post_fill() translate(P) intersection() { sector(-78, -18); circle(r = r_clear + 1.2); }
 module knuckle_body() {
     translate(knuckle_c) circle(r = cam_r);
     // web out to the end of the arm: as wide as possible while staying on

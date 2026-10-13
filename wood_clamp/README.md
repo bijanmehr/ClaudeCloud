@@ -14,8 +14,8 @@ Motion videos: [3D view](images/motion_3d.mp4), [top view](images/motion_top.mp4
 ## How it works
 
 - The **collar** is a C shape with a slit. It is printed slightly open, so it
-  slides over the end of the wood with about 0.15 mm of clearance.
-- The **lever** turns on a 6 mm pin that is part of the collar. Its four cam
+  slides over the end of the wood with about 0.25 mm of clearance.
+- The **lever** turns on an 8 mm pin that is part of the collar. Its four cam
   rings sit between fixed knuckles, so it cannot come off
   ([slice through the hinge](images/hinge_slice.png)).
 - Pushing the lever down makes its off-centre cam press the ear beside the
@@ -29,7 +29,7 @@ Motion videos: [3D view](images/motion_3d.mp4), [top view](images/motion_top.mp4
 
 | File | What it is |
 |---|---|
-| `wood_clamp_BambuStudio_H2D.3mf` | **Open this in Bambu Studio.** One object, two parts: PETG = filament 1, TPU = filament 2 |
+| `wood_clamp_BambuStudio_H2D.3mf` | **Open this in Bambu Studio.** One object: PETG part = filament 1, TPU part = filament 2, plus a support blocker around the hinge |
 | `hinge_test_BambuStudio_H2D.3mf` | A 21 mm tall working slice of the clamp (one cam ring). **Print this first.** |
 | `*_PETG.stl`, `*_TPU.stl` | The same parts as STLs, in the same position. Select both, drag them in together, and answer **Yes** to "load as a single object with multiple parts", then set the filament for each part |
 | `*_PrusaSlicer.3mf` | The same thing for PrusaSlicer (Bambu Studio cannot read this layout) |
@@ -55,27 +55,31 @@ Start from the **0.20mm Standard @BBL H2D** process and change only these:
 |---|---|---|
 | Layer height | **0.20 mm, do not change** | The hinge gaps are exactly 3 empty 0.2 mm layers |
 | First layer height | 0.20 mm | Same reason |
-| Wall loops | **4** | Makes the pin, cam rings and hinge web almost solid |
+| Wall loops | **4** | Makes the pin, cam rings and hinge web almost solid (3 loops saves only about 7 % of the time) |
 | Top / bottom shells | 5 / 4 | |
-| Sparse infill | 20 % gyroid | The strength comes from the walls; more infill mostly adds time |
-| **Supports** | **OFF** | Supports would fill the hinge gaps. Ignore the "floating / long bridge, consider supports" warning: those bridges are intended |
+| Sparse infill | 20 % gyroid | The strength comes from the walls. 25 % adds about 5 % to the time, 40 % about 20 %, for little gain |
+| **Supports** | **OFF** | Supports would fill the hinge gaps. Ignore the "floating / long bridge, consider supports" warning: those bridges are intended. The 3MF also has a support blocker around the hinge, so turning supports on by mistake cannot fill the gaps |
 | Thick bridges | **OFF** | Thick bridges eat into the 0.6 mm hinge gaps |
 | Bridge / overhang fan | 100 % | Clean first layers over the hinge gaps |
 | Seam | Aligned | |
 | Outer wall speed | 150 mm/s (PETG) | Truer pin and cam surfaces; leave other speeds at the profile defaults |
 | Brim | Outer brim only, 3 mm | Steadies the tall handle; at the bed the lever is 7 mm from the collar, so the brims cannot join |
 | Elephant foot compensation | default (0.15 mm) | |
-| Prime tower | ON (default) | Needed for the nozzle change |
+| Prime tower | ON (default); drag it to a plate corner away from the hinge and handle | Needed for the nozzle change |
 | Plate | Textured PEI, no glue | |
 | Temperatures | filament profile defaults, bed 70 °C | |
 
-To print faster, drop infill to 15 % and keep everything else. To get a
-smoother finish, take the outer wall speed down to about 100 mm/s. **Do not
-change the layer height** unless you rebuild the files with the matching
-`layer_h` (see Customising).
+Where the time goes: mostly the thick walls, plus one nozzle change per
+layer (about 350 of them), because the TPU lining runs the full height. To
+print a bit faster, drop infill to 15 % (about 8 % less time) and keep
+everything else. To get a smoother finish, take the outer wall speed down to
+about 100 mm/s. **Do not change the layer height** unless you rebuild the
+files with the matching `layer_h` (see Customising). Printed at a different
+layer height, these files lose their exact 3-empty-layer hinge gaps.
 
-Bambu Studio shows the exact print time. The full clamp uses about 128 cm³ of
-PETG (~160 g) and 15 cm³ of TPU (~18 g). The hinge test uses about a third of that.
+Bambu Studio shows the exact print time. With these settings the full clamp
+uses about 130 g of PETG (plus the prime tower) and about 20 g of TPU. The
+hinge test uses about a third of that.
 
 ### After printing
 1. Let it cool on the plate, then remove it.
@@ -94,39 +98,74 @@ PETG (~160 g) and 15 cm³ of TPU (~18 g). The hinge test uses about a third of t
    **the slit is close to the crack**: the squeeze is strongest within about
    45° of the slit.
 3. Push the handle down until it stops against the collar. It is now locked.
-   Expect roughly 20–30 N at the handle tip (a firm push with the thumb).
-4. To remove it, lift the handle tip and slide the collar off.
+   Expect about 30 N at the handle tip at the stiffest point (a firm thumb or
+   palm push). Depending on the TPU and the wood it can be 20–40 N.
+4. To remove it, lift the handle tip (about 25 N) and slide the collar off.
 
 ## Your wood diameter
-Measure the cylinder with calipers in 3–4 places and use the average. Then
-rebuild the print files:
+1. Measure the cylinder with calipers at three heights, twice at each height
+   (turned 90°), so six readings in total.
+2. Build with the **average**:
 
-```
-python3 tools/build_print.py -D wood_d=37.8
-```
+   ```
+   python3 tools/build_print.py -D wood_d=37.8
+   ```
 
-One print fits wood from about 0.3 mm under to 0.5 mm over the diameter it was
-built for. Inside that range the pressure on the wood varies by about ±30 %.
+3. Check the readings against that average:
+   - the largest reading is no more than **0.30 mm** above it (otherwise the
+     collar will not slide on);
+   - largest minus smallest is no more than **0.6 mm** (otherwise the wood is
+     too out of round for an even grip).
+
+One print fits wood from about **0.33 mm under to 0.30 mm over** the
+diameter it was built for. Inside that range the pressure on the wood varies
+by about ±30 %.
+
+**Check the print, not just the wood.** On the hinge test, with the lever
+open, measure the inside diameter across the TPU fin tips (light touch with
+the caliper jaws). It should be **38.44 mm** for a 38.0 mm build (wood
+diameter + 0.44). If it comes out larger by some amount, rebuild with
+`wood_d` smaller by that amount, and the other way round.
 
 ## What was checked (simulation, not yet a real print)
 - **Motion:** the lever was swept from open to closed. At each step the collar
   closes exactly as far as the cam pushes it, and collisions were checked in
   2D (`tools/kinematics.py`) and in full 3D on the print meshes
   (`tools/sweep3d.py`). There are no collisions. As printed, the narrowest
-  gaps are 0.45 mm (pin), 0.6 mm (between layers), about 0.6 mm (ear to arm)
-  and 1.0 mm (cam to ear). The lever locks past dead centre.
+  gaps are 0.45 mm (around the pin), 0.6 mm (between layers), 0.6 mm (ear to
+  knuckle) and 0.9 mm (cam ring to collar). The lever locks 10° past dead
+  centre.
 - **Forces:** squeeze, cam force and hand force through the whole travel
   (`tools/forces.py`, rigid-part model; `tools/collar_fea.py` adds the
-  flexing of the PETG parts).
+  flexing of the PETG parts, which takes the hand force down to about 30 N).
 - **Stress:** 3D finite-element analysis with CalculiX, on the parts rebuilt
   as exact solids (`tools/brep.py`, `tools/fea.py`, `tools/stress_check.py`).
-  The solver was validated on a beam against textbook values. With the fins
-  modelled as springs (version 3, typical TPU): cam force about 230 N; squeeze
-  0.23 / 0.32 / 0.55 mm (min / average / max); average pressure about
-  0.23 MPa; collar stress mostly below 10 MPa (PETG is about 45 MPa).
-  **Open item:** one corner where the hinge web joins the arm reaches about
-  17–22 MPa across the layers in the model. It is being reinforced, and the
-  lever's stress check is being repeated for version 3.
+  The solver was validated on a beam against textbook values. PETG is about
+  45 MPa in tension, and the bond between layers is weaker, so stress
+  *across the layers* was kept to about 10 MPa or less.
+
+  | Closed collar, fins modelled as springs | typical TPU | stiff TPU |
+  |---|---|---|
+  | Cam force | 216 N | 283 N |
+  | Squeeze on the wood, min / average / max | 0.23 / 0.32 / 0.56 mm | 0.18 / 0.28 / 0.57 mm |
+  | Average pressure on the wood | 0.23 MPa | 0.31 MPa |
+  | Stress, 99.5 % of the part below / highest | 8.3 / 14.8 MPa | 10.9 / 19.4 MPa |
+  | Across the layers, highest / at the pin | 8.4 / 3.9 MPa | 10.9 / 5.2 MPa |
+
+  Even if the fins jammed solid (about 430 N on the cam), the stress across
+  the layers stays near 8 MPa at the pin and 17 MPa at the worst knuckle
+  corner. The lever was checked with the worst-case loads from the rigid
+  model (stiff TPU, wood 0.4 mm oversize: about 600 N on the cam and 68 N on
+  the handle, roughly twice the realistic values). Closed, its highest stress is 11.5 MPa (4.1 MPa across the
+  layers). While it is being pushed, 99.5 % of it is below 11.4 MPa. The model
+  shows spikes only on the sharp inside corners where each cam ring meets the
+  handle neck: a linear model always reads infinite at a sharp corner, and
+  0.5 mm away the stress is already below about 30 MPa (15 MPa across the
+  layers).
+
+  Two changes came out of these checks: the hinge pin went from 6 to 8 mm
+  with small fillets where it meets each knuckle, and in the knuckle layers
+  the knuckle is filled out to the end of the arm, which removed a sharp notch.
 - **Print files:** watertight meshes, exactly one collar, one lever and one
   liner, no PETG/TPU overlap. They slice with two extruders in PrusaSlicer, and
   the Bambu 3MF was checked against Bambu Studio's own importer logic.
@@ -142,7 +181,7 @@ build, check and simulation scripts:
 python3 tools/build_print.py [-D name=value ...]      # print files + checks
 tools/export_checks.sh && python3 tools/kinematics.py build/chk 10.8 2.75 && python3 tools/sweep3d.py build/chk
 python3 tools/forces.py build/chk                     # force simulation
-python3 tools/collar_fea.py build/chk 3.8             # collar FEA, fins as springs
+python3 tools/collar_fea.py build/chk 4.0             # collar FEA, fins as springs
 python3 tools/animate.py build images/motion_3d.mp4   # motion video
 ```
 
