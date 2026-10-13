@@ -27,16 +27,47 @@ Motion videos: [3D view](images/motion_3d.mp4), [top view](images/motion_top.mp4
 
 ## Files (`print/`)
 
+Each print is **two STL files, one per material**: they are the two parts of
+one object and have to be loaded together (see the next section).
+
 | File | What it is |
 |---|---|
-| `wood_clamp_BambuStudio_H2D.3mf` | **Open this in Bambu Studio.** One object: PETG part = filament 1, TPU part = filament 2, plus a support blocker around the hinge |
-| `hinge_test_BambuStudio_H2D.3mf` | A 21 mm tall working slice of the clamp (one cam ring). **Print this first.** |
-| `*_PETG.stl`, `*_TPU.stl` | The same parts as STLs, in the same position. Select both, drag them in together, and answer **Yes** to "load as a single object with multiple parts", then set the filament for each part |
-| `*_PrusaSlicer.3mf` | The same thing for PrusaSlicer (Bambu Studio cannot read this layout) |
+| `hinge_test_PETG.stl` + `hinge_test_TPU.stl` | A 21 mm tall working slice of the clamp (one cam ring). **Print this first.** |
+| `wood_clamp_PETG.stl` + `wood_clamp_TPU.stl` | The full clamp. PETG = collar and lever; TPU = the spring lining |
+| `*_BambuStudio_H2D.3mf` | The same, as one 3MF (also has a support blocker over the hinge). See the notes below |
+| `*_PrusaSlicer.3mf` | The same, for PrusaSlicer |
 | `build_report.json` | Mesh checks and slice test for the files above |
 
 All files are for **38.0 mm wood**. If yours measures differently, see
 "Your wood diameter" below.
+
+## Loading the STLs in Bambu Studio
+
+1. **Two filaments first.** In the Filament list on the left, make sure there
+   are two: **1 = PETG**, **2 = TPU 95A** (use the + button to add one). With
+   only one filament, Bambu Studio hides the menu used in step 4.
+2. **Import both STLs in one go.** File > Import > *Import 3MF/STL/STEP/SVG/OBJ/AMF*
+   (Ctrl+I), select **both** `wood_clamp_PETG.stl` and `wood_clamp_TPU.stl`
+   (Ctrl-click or Cmd-click) and open them. Dragging both files onto the plate
+   in a single drop works too. Do not include the 3MF in the selection.
+3. Bambu Studio asks **"Load these files as a single object with multiple
+   parts?"** Click **Yes**. This keeps the lining exactly inside the collar.
+   (If you click No, or load the files one at a time, the lining lands in the
+   wrong place. Delete everything and repeat step 2.)
+4. In the Objects list, open the object. It has two parts, `wood_clamp_PETG.stl`
+   and `wood_clamp_TPU.stl`. Right-click **`wood_clamp_TPU.stl`** > **Change
+   Filament** > filament **2** (TPU). Afterwards, do not change the filament on
+   the object row, because that resets both parts to one filament.
+5. **Nozzles.** Click the plate's *Edit filament grouping* icon (in the row of
+   small icons on the plate), choose **Custom**, and put PETG on the **left**
+   nozzle and TPU on the **right**.
+6. Apply the settings below and slice.
+
+**Using the 3MF instead:** it loads as one object with the parts already on
+filaments 1 and 2. When you open it, Bambu Studio shows *"The 3mf is not from
+Bambu Lab, load geometry data and color data only."* That message is normal
+and nothing is missing. Do step 1 **before** opening it, or the TPU part
+silently prints in filament 1. Then do step 5.
 
 ## Printing on a Bambu Lab H2D
 
@@ -46,7 +77,7 @@ All files are for **38.0 mm wood**. If yours measures differently, see
   from the external spool through the TPU bypass, **not through the AMS**.
   On the H2D, TPU only prints from the right nozzle.
 - Bambu's harder "TPU for AMS" (68D) is much stiffer. The fins are sized for 95A.
-- In Bambu Studio, set **filament grouping to manual**: PETG on the left, TPU on the right.
+- Filament grouping: **Custom**, PETG left, TPU right (step 5 above).
 
 ### Recommended settings (best balance of time and quality)
 Start from the **0.20mm Standard @BBL H2D** process and change only these:
@@ -58,7 +89,7 @@ Start from the **0.20mm Standard @BBL H2D** process and change only these:
 | Wall loops | **4** | Makes the pin, cam rings and hinge web almost solid (3 loops saves only about 7 % of the time) |
 | Top / bottom shells | 5 / 4 | |
 | Sparse infill | 20 % gyroid | The strength comes from the walls. 25 % adds about 5 % to the time, 40 % about 20 %, for little gain |
-| **Supports** | **OFF** | Supports would fill the hinge gaps. Ignore the "floating / long bridge, consider supports" warning: those bridges are intended. The 3MF also has a support blocker around the hinge, so turning supports on by mistake cannot fill the gaps |
+| **Supports** | **OFF** | Supports would fill the hinge gaps. Ignore the "floating / long bridge, consider supports" warning: those bridges are intended. (The 3MF also has a support blocker over the hinge; the STLs do not, so with STLs supports must stay off) |
 | Thick bridges | **OFF** | Thick bridges eat into the 0.6 mm hinge gaps |
 | Bridge / overhang fan | 100 % | Clean first layers over the hinge gaps |
 | Seam | Aligned | |
