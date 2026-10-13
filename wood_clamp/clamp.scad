@@ -66,9 +66,10 @@ handle_th = 4.0;      // handle thickness
 handle_end = 128;     // handle tip, degrees around the collar from the slit
 
 /* [Print-in-place clearances] */
-xy_gap = 0.45;        // side clearance between moving parts
-z_gap = 0.5;          // vertical clearance between stacked knuckles
-knuckle_h = 5.5;      // height of each fixed knuckle
+layer_h = 0.2;        // slicer layer height: hinge layers are snapped to it
+xy_gap = 0.45;        // side clearance between moving parts (pin hole, cam)
+z_gap_layers = 3;     // empty layers between stacked hinge parts (3 x 0.2 = 0.6 mm)
+knuckle_h = 5.2;      // height of each fixed knuckle (snapped to layers)
 cam_bands = 4;        // number of cam layers on the lever
 
 /* [Quality] */
@@ -131,13 +132,21 @@ earA_top = P[0] + 1.5;                      // ear A covers the cam contact zone
 lobe_closed = 270 + over_centre;
 lobe_open = lobe_closed - open_angle;
 
-// Z bands: fixed knuckles (arm) and cam layers (lever) alternate
-cam_band_h = (clamp_h - (cam_bands + 1) * knuckle_h - 2 * cam_bands * z_gap) / cam_bands;
-function knuckle_z(i) = i * (knuckle_h + cam_band_h + 2 * z_gap);
-function cam_z(i) = knuckle_z(i) + knuckle_h + z_gap;
+// Z bands: fixed knuckles (arm) and cam layers (lever) alternate. Every
+// boundary sits on the layer grid so each gap prints as exactly
+// z_gap_layers empty layers; the top knuckle takes up any remainder.
+function snap(v) = floor(v / layer_h + 1e-6) * layer_h;
+z_gap = z_gap_layers * layer_h;
+knuckle_hs = snap(knuckle_h);
+cam_band_h = snap((clamp_h - (cam_bands + 1) * knuckle_hs - 2 * cam_bands * z_gap) / cam_bands);
+function knuckle_z(i) = i * (knuckle_hs + cam_band_h + 2 * z_gap);
+function cam_z(i) = knuckle_z(i) + knuckle_hs + z_gap;
+function knuckle_height(i) = i == cam_bands ? clamp_h - knuckle_z(i) : knuckle_hs;
 
 echo(str("cam_e=", cam_e, " cam_r=", cam_r, " lobe=", lobe, " |P|=", norm(P), " P=", P));
-echo(str("slit closure at cam=", draw_of(cam_e), " cam_band_h=", cam_band_h));
+echo(str("slit closure at cam=", draw_of(cam_e), " cam_band_h=", cam_band_h, " z_gap=", z_gap,
+         " bands: ", [for (i = [0 : cam_bands]) [knuckle_z(i), knuckle_z(i) + knuckle_height(i)]],
+         [for (i = [0 : cam_bands - 1]) [cam_z(i), cam_z(i) + cam_band_h]]));
 
 // ---------------------------------------------------------------------
 // Collar (PETG C-ring) and TPU spring liner, in either state
@@ -324,7 +333,7 @@ module lever_at(theta) {
 // ---------------------------------------------------------------------
 // 3D bodies
 // ---------------------------------------------------------------------
-module knuckle_layers() for (i = [0 : cam_bands]) translate([0, 0, knuckle_z(i)]) linear_extrude(knuckle_h) children();
+module knuckle_layers() for (i = [0 : cam_bands]) translate([0, 0, knuckle_z(i)]) linear_extrude(knuckle_height(i)) children();
 module cam_layers() for (i = [0 : cam_bands - 1]) translate([0, 0, cam_z(i)]) linear_extrude(cam_band_h) children();
 
 // fixed PETG: collar, ear A, arm, hinge knuckles and pin
