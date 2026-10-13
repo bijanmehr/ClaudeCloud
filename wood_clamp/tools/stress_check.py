@@ -26,6 +26,7 @@ def mesh_part(m, h_max):
     return fea.quadratic(nodes, tets)
 
 MU = 0.30
+HANDLE_END = 160.0   # handle tip angle in clamp.scad
 IN_PLANE, ACROSS = 45.0, 20.0
 
 
@@ -69,7 +70,7 @@ def lever_case(chk, c, row, hand_T, name, max_vol, handle_len=48.0):
     loads.append((np.where(cont)[0], np.r_[Fcon, 0]))
     Fh = np.zeros(2)
     if hand_T > 0:
-        tip_local = np.array([math.cos(math.radians(128)), math.sin(math.radians(128))]) * (g["shell_r"] + 1.2 + 2.0)
+        tip_local = np.array([math.cos(math.radians(HANDLE_END - 4)), math.sin(math.radians(HANDLE_END - 4))]) * (g["shell_r"] + 1.2 + 2.5)
         tip = (pose_matrix(c, row["theta"], row["f"]) @ np.r_[tip_local, 0, 1])[:2]
         rt = tip - P; Fh = hand_T / np.linalg.norm(rt) * np.array([-rt[1], rt[0]]) / np.linalg.norm(rt)
         hz = (nodes[:, 2] > 25) & (nodes[:, 2] < 45)
