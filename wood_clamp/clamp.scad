@@ -294,6 +294,20 @@ module arm_2d() {
         offset(r = -1) offset(delta = 1) union() { arm_cross(); intersection() { arm_root(); translate([cross_ri - 3, -20]) square([20, 20]); } }
         earA_keepout();
     }
+    // full-height post at the end of the arm, reaching as close to the pivot
+    // as the cam's swing allows: the hinge webs become short stubs into a
+    // solid column instead of hanging off the thin end of the arm
+    difference() {
+        offset(r = -1) offset(delta = 1) union() {
+            intersection() {
+                translate(P) difference() { circle(r = r_clear + 8); circle(r = r_clear + 0.6); }
+                translate(P) sector(-78, -18);
+            }
+            intersection() { arm_cross(); translate(P) circle(r = r_clear + 9); }
+        }
+        translate(P) circle(r = r_clear + 0.6);
+        earA_keepout();
+    }
 }
 
 // Where ear A travels relative to side B between "as printed" and

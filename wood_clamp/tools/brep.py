@@ -20,7 +20,7 @@ def _loop(occ, coords):
     return occ.addCurveLoop(lines)
 
 
-def solid_tets(stl_mesh, z_breaks, h_max=1.0, h_min=0.3, simplify=0.01, transform=None):
+def solid_tets(stl_mesh, z_breaks, h_max=1.0, h_min=0.3, simplify=0.03, transform=None):
     m = stl_mesh if isinstance(stl_mesh, trimesh.Trimesh) else trimesh.load(stl_mesh)
     gmsh.initialize()
     gmsh.option.setNumber("General.Terminal", 0)
@@ -48,6 +48,8 @@ def solid_tets(stl_mesh, z_breaks, h_max=1.0, h_min=0.3, simplify=0.01, transfor
     gmsh.option.setNumber("Mesh.MeshSizeMin", h_min)
     gmsh.option.setNumber("Mesh.MeshSizeFromCurvature", 12)
     gmsh.option.setNumber("Mesh.Algorithm3D", 10)
+    gmsh.option.setNumber("Mesh.Optimize", 1)
+    gmsh.option.setNumber("Mesh.OptimizeNetgen", 1)
     gmsh.model.mesh.generate(3)
     ntags, coords, _ = gmsh.model.mesh.getNodes()
     nodes = coords.reshape(-1, 3)
@@ -56,6 +58,10 @@ def solid_tets(stl_mesh, z_breaks, h_max=1.0, h_min=0.3, simplify=0.01, transfor
     tets = np.array([idx[t] for t in enodes[list(et).index(4)]]).reshape(-1, 4)
     nvol = len(gmsh.model.getEntities(3))
     gmsh.finalize()
+    # drop collapsed slivers (zero volume) - they carry no material and break the solver
+    v = np.einsum("ij,ij->i", np.cross(nodes[tets[:, 1]] - nodes[tets[:, 0]], nodes[tets[:, 2]] - nodes[tets[:, 0]]),
+                  nodes[tets[:, 3]] - nodes[tets[:, 0]]) / 6
+    tets = tets[np.abs(v) > 1e-6]
     used = np.unique(tets)
     remap = -np.ones(len(nodes), int)
     remap[used] = np.arange(len(used))
