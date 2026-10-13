@@ -37,7 +37,7 @@ clamp_h = 70.0;
 // Radial squeeze on the wood when the lever is closed
 squeeze = 0.45;
 // Extra gap between fin tips and wood when open (0 = fins just touch)
-fit_gap = 0.0;
+fit_gap = 0.15;
 
 /* [TPU spring liner] */
 liner_base_t = 1.0;   // TPU skin bonded to the PETG
@@ -49,20 +49,22 @@ fin_end_taper = 2.5;  // fins fade out over this height at top and bottom
 liner_end_gap = 0.6;  // liner stops short of the slit by this much
 
 /* [PETG collar] */
-shell_wall = 4.0;
+shell_wall = 6.0;     // stiff enough that the C closes evenly instead of curling at the slit
 // Slit width at the outer surface when closed
 slit_gap = 1.2;
 
 /* [Cam lever] */
 earA_w = 6.0;         // thickness of the ear the cam pushes on
 earB_w = 6.0;         // thickness of the arm root on the other side
-arm_t = 5.0;          // thickness of the arm that reaches over ear A
+arm_t = 7.0;          // thickness of the arm that reaches over ear A
 pin_d = 6.0;          // hinge pin (printed in place)
 cam_wall = 1.6;       // cam wall around the pin hole
 over_centre = 10;     // degrees past dead centre when closed (the lock)
 open_angle = 135;     // lever travel from closed to fully open (as printed)
 cam_slack = 0.5;      // cam-to-ear gap when open (also a print clearance)
-handle_th = 4.0;      // handle thickness
+handle_th = 5.0;      // handle thickness
+neck_d = 8.0;         // width of the lever neck and of the cam-to-handle bridges
+root_fillet = 2.0;    // fillet where ear A and the arm root meet the collar
 handle_end = 128;     // handle tip, degrees around the collar from the slit
 
 /* [Print-in-place clearances] */
@@ -168,7 +170,7 @@ module c_sector(a) {
 // Dovetail key outline (TPU side) at angle k: neck at the bore, wider inside
 // the PETG. Starts 1 mm inside the bore so its flanks cross the bore cleanly.
 key_neck = 2.2; key_flare = 3.4; key_depth = 1.4;
-key_angles = [60, 120, 180, 240, 300];
+key_angles = [90, 135, 180, 225, 270];   // away from the high-bending zone near the slit
 module key_2d(k, br) {
     w0 = key_neck - (key_flare - key_neck) / key_depth;
     rotate(k) polygon([[br - 1, -w0 / 2], [br + key_depth, -key_flare / 2],
@@ -194,7 +196,7 @@ function fin_step(open) = fin_pitch / (tip_r + st_dr(open)) * 180 / PI;
 function fin_angles(open) =
     let(step = fin_step(open),
         a_min = st_a(open) + (liner_end_gap + 3) / (tip_r + st_dr(open)) * 180 / PI,
-        n = floor((180 - a_min) / step) - 1)
+        n = floor((180 - a_min) / step))
     [for (i = [1 : n]) 180 - i * step, for (i = [1 : n]) -(180 - i * step)];
 
 module fin_2d(a, lin_r, tip_rr) {
@@ -224,16 +226,12 @@ module liner_2d(open) {
 
 module liner_3d(open) {
     dr = st_dr(open);
-    // fins fade out at both ends so the pressure ramps in instead of stepping
-    intersection() {
+    // fins grow from nothing over fin_end_taper at both ends, so the
+    // pressure on the wood ramps up instead of stopping at a sharp edge
+    difference() {
         linear_extrude(clamp_h) liner_2d(open);
-        union() {
-            translate([0, 0, fin_end_taper]) cylinder(r = shell_r + 5, h = clamp_h - 2 * fin_end_taper);
-            cylinder(r1 = liner_in_r + dr, r2 = liner_in_r + dr + fin_end_taper * 2, h = fin_end_taper);
-            translate([0, 0, clamp_h - fin_end_taper])
-                cylinder(r1 = liner_in_r + dr + fin_end_taper * 2, r2 = liner_in_r + dr, h = fin_end_taper);
-            difference() { cylinder(r = shell_r + 5, h = clamp_h); translate([0, 0, -1]) cylinder(r = liner_in_r + dr - eps, h = clamp_h + 2); }
-        }
+        translate([0, 0, -eps]) cylinder(r1 = liner_in_r + dr, r2 = tip_r + dr - 0.5, h = fin_end_taper + eps);
+        translate([0, 0, clamp_h - fin_end_taper]) cylinder(r1 = tip_r + dr - 0.5, r2 = liner_in_r + dr, h = fin_end_taper + eps);
     }
 }
 
@@ -246,41 +244,79 @@ cross_ro = cross_ri + arm_t;
 cross_end = atan2(P[1], P[0]) - asin((r_clear + 0.2) / ((cross_ri + cross_ro) / 2)) - 2;
 
 // Ear A: the block the cam pushes on (side A of the slit)
+module earA_block() translate([bore_r + 1, 0]) square([earA_top - bore_r - 1, earA_y]);
 module earA_2d() {
     intersection() {
-        translate([bore_r + 1, 0]) square([earA_top - bore_r - 1, earA_y]);
+        union() {
+            earA_block();
+            // fillet into the collar at the ear root (kept local to the root)
+            intersection() {
+                difference() {
+                    offset(r = -root_fillet) offset(delta = root_fillet) union() { earA_block(); circle(r = shell_r); }
+                    circle(r = shell_r - 0.5);
+                }
+                translate([shell_r - 2, -1]) square([root_fillet + 3, earA_y + root_fillet + 2]);
+            }
+        }
         c_sector(a0);
+        rotate(a0) translate([-100, 0]) square([200, 100]);   // stay on side A of the slit
+        circle(r = earA_top + 5);
     }
 }
 
 // Side B: arm root, the arm that reaches over ear A, and (in knuckle
 // layers) the web out to the hinge knuckle
+module arm_root() translate([bore_r + 1, -(slit_gap / 2 + earB_w)]) square([cross_ro - bore_r - 1, slit_gap / 2 + earB_w]);
+module arm_cross() difference() {
+    circle(r = cross_ro);
+    circle(r = cross_ri);
+    rotate(cross_end) translate([-100, 0]) square([200, 100]);
+    rotate(-(slit_gap / 2 + earB_w) / cross_ri * 180 / PI) mirror([0, 1]) translate([-100, 0]) square([200, 100]);
+}
 module arm_2d() {
     intersection() {
-        translate([bore_r + 1, -(slit_gap / 2 + earB_w)]) square([cross_ro - bore_r - 1, slit_gap / 2 + earB_w]);
+        union() {
+            arm_root();
+            // fillet into the collar at the arm root (kept local to the root)
+            intersection() {
+                difference() {
+                    offset(r = -root_fillet) offset(delta = root_fillet) union() { arm_root(); circle(r = shell_r); }
+                    circle(r = shell_r - 0.5);
+                }
+                translate([shell_r - 2, -(slit_gap / 2 + earB_w + root_fillet + 2)]) square([root_fillet + 3, slit_gap / 2 + earB_w + root_fillet + 3]);
+            }
+        }
         c_sector(a0);
+        mirror([0, 1]) translate([-100, 0]) square([200, 100]);   // stay on side B
     }
-    // the part that bridges the slit, clear of ear A
+    // the part that bridges the slit, with a fillet in its inner corner, clear of ear A
     difference() {
-        circle(r = cross_ro);
-        circle(r = cross_ri);
-        rotate(cross_end) translate([-100, 0]) square([200, 100]);
-        rotate(-(slit_gap / 2 + earB_w) / cross_ri * 180 / PI) mirror([0, 1]) translate([-100, 0]) square([200, 100]);
+        offset(r = -1) offset(delta = 1) union() { arm_cross(); intersection() { arm_root(); translate([cross_ri - 3, -20]) square([20, 20]); } }
+        earA_keepout();
     }
 }
+
+// Where ear A travels relative to side B between "as printed" and
+// "closed", plus a clearance: side-B parts are kept out of this region.
+module earA_in_B(f) rotate(-a0) translate([-st_dr(f), 0]) rotate(st_a(f)) move_A(f) earA_2d();
+module earA_keepout() offset(delta = xy_gap + 0.15) hull() for (f = [0, 0.25, 0.5, 0.75, 1]) earA_in_B(f);
 
 // Hinge knuckle (fixed, part of side B): same footprint as the cam as
 // printed, so each cam layer prints on top of a knuckle and vice versa
 knuckle_c = P + cam_e * dir2(lobe_open);
-module knuckle_2d() {
+module knuckle_2d() difference() { knuckle_body(); earA_keepout(); }
+module knuckle_body() {
     translate(knuckle_c) circle(r = cam_r);
-    // web out to the end of the arm, kept on the outside so it clears the
-    // corner of ear A in every collar position
+    // web out to the end of the arm: as wide as possible while staying on
+    // the outer side, clear of ear A in every collar position
     hull() {
-        translate(knuckle_c + (cam_r - 2.5) * dir2(-25)) circle(r = 2.5);
         intersection() {
-            difference() { circle(r = cross_ro); circle(r = cross_ri + 2); }
-            rotate(cross_end - 4) square([100, 100]);
+            translate(knuckle_c) circle(r = cam_r);
+            translate(P) rotate(-80) translate([0, -50]) square([100, 100]);
+        }
+        intersection() {
+            difference() { circle(r = cross_ro); circle(r = cross_ri + 1); }
+            rotate(cross_end - 7) square([100, 100]);
             rotate(cross_end) mirror([0, 1]) square([100, 100]);
         }
     }
@@ -292,7 +328,7 @@ module pin_2d() translate(P) circle(r = pin_r);
 hr_in = shell_r + 1.2;               // handle inner radius (stop nub closes the gap)
 hr_out = hr_in + handle_th;
 neck_dir = atan2(P[1], P[0]) + 122;  // from the pivot towards the collar, side A
-neck_c = P + (r_clear + handle_th / 2 + 0.3) * dir2(neck_dir);
+neck_c = P + (r_clear + neck_d / 2 + 0.3) * dir2(neck_dir);
 handle_start = atan2(neck_c[1], neck_c[0]) + 4;
 
 module cam_2d() {
@@ -300,8 +336,8 @@ module cam_2d() {
         union() {
             translate(P + cam_e * dir2(lobe_closed)) circle(r = cam_r);
             hull() {   // bridge from the cam to the handle neck
-                translate(P + cam_e * dir2(lobe_closed)) circle(r = cam_r * 0.7);
-                translate(neck_c) circle(d = handle_th);
+                translate(P + cam_e * dir2(lobe_closed)) circle(r = cam_r);
+                translate(neck_c) circle(d = neck_d);
             }
         }
         translate(P) circle(r = pin_hole_r);
@@ -311,7 +347,7 @@ module cam_2d() {
 module handle_2d() {
     // neck
     hull() {
-        translate(neck_c) circle(d = handle_th);
+        translate(neck_c) circle(d = neck_d);
         rotate(handle_start) translate([(hr_in + hr_out) / 2, 0]) circle(d = handle_th);
     }
     // band hugging the collar
@@ -351,7 +387,13 @@ module collar_3d(open) {
 module lever_3d(open, theta) {
     move_B(open) lever_at(theta) {
         linear_extrude(clamp_h) handle_2d();
-        cam_layers() cam_2d();
+        difference() {
+            cam_layers() cam_2d();
+            // 45 deg chamfer under each cam layer's pin hole: its first layers
+            // start away from the pin and step in, instead of floating
+            for (i = [0 : cam_bands - 1])
+                translate([P[0], P[1], cam_z(i) - eps]) cylinder(r1 = pin_hole_r + z_gap, r2 = pin_hole_r - 0.2, h = z_gap + 0.2 + eps, $fn = 60);
+        }
     }
 }
 
