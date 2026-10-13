@@ -37,7 +37,7 @@ clamp_h = 70.0;
 // Radial squeeze on the wood when the lever is closed
 squeeze = 0.45;
 // Extra gap between fin tips and wood when open (0 = fins just touch)
-fit_gap = 0.15;
+fit_gap = 0.25;
 
 /* [TPU spring liner] */
 liner_base_t = 1.0;   // TPU skin bonded to the PETG
@@ -440,4 +440,4 @@ else if (part == "ring_open") linear_extrude(clamp_h) ring_2d(1);
 else if (part == "ring_at") linear_extrude(clamp_h) ring_2d(lever_open);
 echo(str("GEOM ", "{\"P\":[", P[0], ",", P[1], "],\"a0\":", a0, ",\"a0o\":", a0o, ",\"open_dr\":", open_dr,
          ",\"open_angle\":", open_angle, ",\"cam_e\":", cam_e, ",\"cam_r\":", cam_r, ",\"lobe\":", lobe,
-         ",\"shell_r\":", shell_r, ",\"tip_r\":", tip_r, ",\"cam_band_h\":", cam_band_h, ",\"draw\":", draw_of(cam_e), ",\"fit_gap\":", fit_gap, "}"));
+         ",\"shell_r\":", shell_r, ",\"tip_r\":", tip_r, ",\"cam_band_h\":", cam_band_h, ",\"draw\":", draw_of(cam_e), ",\"fit_gap\":", fit_gap, ",\"shell_wall\":", shell_wall, ",\"pin_hole_r\":", pin_hole_r, "}"));

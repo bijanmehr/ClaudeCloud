@@ -28,7 +28,7 @@ class Clamp:
         self.g = json.load(open(f"{chk_dir}/geom.json"))
         self.m = {n: trimesh.load(f"{chk_dir}/{n}.stl") for n in
                   ("earA_closed", "bgroup_closed", "lever_closed", "ring_closed", "ring_open")}
-        self.rn = self.g["shell_r"] - 2.0
+        self.rn = self.g["shell_r"] - self.g.get("shell_wall", 4.0) / 2
 
     def a_f(self, f):
         dr = f * self.g["open_dr"]

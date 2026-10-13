@@ -33,7 +33,7 @@ def run(chk, kp=0.73, h_max=1.6, stroke_eff=None, label="typical"):
     m = trimesh.load(f"{chk}/fea_collar_closed.stl")
     nodes, tets, _ = brep.solid_tets(m, Z_BREAKS, h_max=h_max, h_min=0.4)
     nodes, t10 = fea.quadratic(nodes, tets)
-    bore_r = g["shell_r"] - 6.0 if g["shell_r"] > 26 else g["shell_r"] - 4.0
+    bore_r = g["shell_r"] - g.get("shell_wall", 4.0)
     rr = np.linalg.norm(nodes[:, :2], axis=1)
     ang = np.degrees(np.arctan2(nodes[:, 1], nodes[:, 0]))
     bore = np.where((np.abs(rr - bore_r) < 0.05) & (np.abs(ang) > 12) & (nodes[:, 2] > 2.5) & (nodes[:, 2] < 67.5))[0]

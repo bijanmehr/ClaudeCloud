@@ -9,6 +9,8 @@ import os
 import subprocess
 import sys
 
+import math
+
 import trimesh
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -23,6 +25,13 @@ VARIANTS = {
     "wood_clamp": [],
     "hinge_test": ["-D", "clamp_h=21.4", "-D", "cam_bands=1"],   # one cam layer between two knuckles
 }
+
+
+def geom(extra):
+    r = subprocess.run(["openscad", "-D", 'part="none"', *extra, "-o", "/tmp/_geom.csg", os.path.join(ROOT, "clamp.scad")],
+                       capture_output=True, text=True)
+    line = [l for l in r.stderr.splitlines() if "GEOM" in l][0]
+    return json.loads(line.split("GEOM ", 1)[1].rstrip('"'))
 
 
 def export(part, path, extra):
@@ -44,8 +53,20 @@ def main(user_args):
         lo = petg.bounds[0].copy(); hi = petg.bounds[1].copy()
         lo = [min(a, b) for a, b in zip(lo, tpu.bounds[0])]; hi = [max(a, b) for a, b in zip(hi, tpu.bounds[1])]
         offset = (BED_CENTRE[0] - (lo[0] + hi[0]) / 2, BED_CENTRE[1] - (lo[1] + hi[1]) / 2, -lo[2])
+        # support blocker around the printed hinge: even with supports switched
+        # on, nothing may be generated inside the hinge gaps
+        g = geom(args)
+        a = 180 - (180 - g["a0"]) * (g["shell_r"] - g["shell_wall"] / 2) / (g["shell_r"] - g["shell_wall"] / 2 + g["open_dr"])
+        px, py = g["P"]
+        c, s = math.cos(math.radians(g["a0"])), math.sin(math.radians(g["a0"]))
+        qx, qy = px * c - py * s + g["open_dr"], px * s + py * c
+        c, s = math.cos(math.radians(-a)), math.sin(math.radians(-a))
+        pin = (qx * c - qy * s, qx * s + qy * c)
+        blocker = trimesh.creation.cylinder(radius=g["lobe"] + 0.45 + 1.8, height=hi[2] - lo[2], sections=64)
+        blocker.apply_translation((pin[0], pin[1], (lo[2] + hi[2]) / 2))
         parts = [(f"{name} collar + lever (PETG, left nozzle)", petg, 1),
-                 (f"{name} spring liner (TPU 95A, right nozzle)", tpu, 2)]
+                 (f"{name} spring liner (TPU 95A, right nozzle)", tpu, 2),
+                 ("hinge support blocker", blocker, 1, "support_blocker")]
         bambu = os.path.join(OUT, f"{name}_BambuStudio_H2D.3mf")
         threemf.write_bambu_3mf(bambu, name, parts, offset)
         prusa = os.path.join(OUT, f"{name}_PrusaSlicer.3mf")

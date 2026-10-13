@@ -36,12 +36,14 @@ def write_multimaterial_3mf(path, object_name, parts, offset=(0.0, 0.0, 0.0)):
     """
     vert_lines, tri_lines, volumes = [], [], []
     v_off = t_off = 0
-    for name, mesh, extruder in parts:
+    for part in parts:
+        name, mesh, extruder = part[:3]
         for x, y, z in mesh.vertices:
             vert_lines.append(f'<vertex x="{x:.5f}" y="{y:.5f}" z="{z:.5f}"/>')
         for a, b, c in mesh.faces:
             tri_lines.append(f'<triangle v1="{a + v_off}" v2="{b + v_off}" v3="{c + v_off}"/>')
-        volumes.append((name, t_off, t_off + len(mesh.faces) - 1, extruder))
+        vtype = {"support_blocker": "SupportBlocker"}.get(part[3] if len(part) > 3 else "", "ModelPart")
+        volumes.append((name, t_off, t_off + len(mesh.faces) - 1, extruder, vtype))
         v_off += len(mesh.vertices)
         t_off += len(mesh.faces)
 
@@ -65,10 +67,10 @@ def write_multimaterial_3mf(path, object_name, parts, offset=(0.0, 0.0, 0.0)):
     cfg = ['<?xml version="1.0" encoding="UTF-8"?>', '<config>',
            '<object id="1" instances_count="1">',
            f'<metadata type="object" key="name" value={quoteattr(object_name)}/>']
-    for name, first, last, extruder in volumes:
+    for name, first, last, extruder, vtype in volumes:
         cfg += [f'<volume firstid="{first}" lastid="{last}">',
                 f'<metadata type="volume" key="name" value={quoteattr(name)}/>',
-                '<metadata type="volume" key="volume_type" value="ModelPart"/>',
+                f'<metadata type="volume" key="volume_type" value="{vtype}"/>',
                 f'<metadata type="volume" key="extruder" value="{extruder}"/>',
                 '</volume>']
     cfg += ['</object>', '</config>', '']
@@ -100,10 +102,11 @@ def write_bambu_3mf(path, object_name, parts, offset=(0.0, 0.0, 0.0)):
     components, and Metadata/model_settings.config gives each part its
     filament number (extruder 1, 2, ... = filament slots in the project).
 
-    parts: list of (part_name, trimesh.Trimesh, filament_number starting at 1).
+    parts: list of (part_name, trimesh.Trimesh, filament_number starting at 1
+    [, subtype]) where subtype is "normal_part" (default) or "support_blocker".
     """
     sub = "/3D/Objects/object_1.model"
-    objs = "\n".join(f'<object id="{i + 1}" type="model">\n{_mesh_xml(m)}\n</object>' for i, (_, m, _) in enumerate(parts))
+    objs = "\n".join(f'<object id="{i + 1}" type="model">\n{_mesh_xml(p[1])}\n</object>' for i, p in enumerate(parts))
     sub_model = (f'<?xml version="1.0" encoding="UTF-8"?>\n<model unit="millimeter" xml:lang="en-US" {_BBS_NS} '
                  f'requiredextensions="p">\n<resources>\n{objs}\n</resources>\n<build/>\n</model>\n')
     main_id = len(parts) + 1
@@ -121,8 +124,10 @@ def write_bambu_3mf(path, object_name, parts, offset=(0.0, 0.0, 0.0)):
     cfg = ['<?xml version="1.0" encoding="UTF-8"?>', "<config>", f'  <object id="{main_id}">',
            f'    <metadata key="name" value={quoteattr(object_name)}/>',
            f'    <metadata key="extruder" value="{parts[0][2]}"/>']
-    for i, (name, _, filament) in enumerate(parts):
-        cfg += [f'    <part id="{i + 1}" subtype="normal_part">',
+    for i, p in enumerate(parts):
+        name, filament = p[0], p[2]
+        subtype = p[3] if len(p) > 3 else "normal_part"
+        cfg += [f'    <part id="{i + 1}" subtype="{subtype}">',
                 f'      <metadata key="name" value={quoteattr(name)}/>',
                 f'      <metadata key="matrix" value="{_IDENT16}"/>',
                 f'      <metadata key="extruder" value="{filament}"/>',
@@ -159,5 +164,5 @@ def check_bambu_3mf(path):
         part = [p for p in cfg_obj.findall("part") if p.get("id") == comp.get("objectid")][0]
         meta = {m.get("key"): m.get("value") for m in part.findall("metadata")}
         ntri = len(sub_obj.find("m:mesh/m:triangles", ns))
-        out.append((meta["name"], int(meta["extruder"]), ntri))
+        out.append((meta["name"], int(meta["extruder"]), ntri, part.get("subtype")))
     return out

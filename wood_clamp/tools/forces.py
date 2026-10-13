@@ -28,7 +28,7 @@ CLAMP_H = 70.0
 FIN_LEN = 65.0       # fin length minus the tapered ends
 
 
-def simulate(chk_dir, kp, wood_offset=0.0, n=60, fit_gap=0.15, wall=None):
+def simulate(chk_dir, kp, wood_offset=0.0, n=60, fit_gap=None, wall=None):
     c = K.Clamp(chk_dir)
     g = c.g
     S = c.sections(10.8)
@@ -36,7 +36,8 @@ def simulate(chk_dir, kp, wood_offset=0.0, n=60, fit_gap=0.15, wall=None):
     P0 = g["P"]
     wood_r = g["tip_r"] + 0.45          # nominal wood radius used by the model
     area = 2 * math.pi * wood_r * FIN_LEN
-    wall = wall or (6.0 if g["shell_r"] > 26 else 4.0)
+    wall = wall or g.get("shell_wall", 4.0)
+    fit_gap = g.get("fit_gap", 0.0) if fit_gap is None else fit_gap
     rn = g["shell_r"] - wall / 2
     I_ring = CLAMP_H * wall ** 3 / 12
     thetas = np.linspace(-g["open_angle"], 0, n)
