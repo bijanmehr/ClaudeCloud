@@ -35,7 +35,7 @@ include <../params.scad>
 //        |#########TTTTTT###########TTTTTT#########|     rivet stems through it
 //    0.9 |######TTTTTTTTTTTT#####TTTTTTTTTTTT######|  <- rivet heads (head_h)
 //    0.3 |######TTTTTTTTTTTT#####TTTTTTTTTTTT######|     under the floor
-//        |<--------- 16.4 = d + 2 (undercut + wall) --------->|
+//        |<--- 16.4 = d + 2 (undercut + wall) ---->|  cup outside
 //   Pictures: images/bump_stop.png (demo), images/bump_stop_section.png
 //   (cut-away: riveted dome stop, flat stop with hollow core, landing foot
 //   with leg socket, bumper strip), images/bump_stop_test.png (test plate).
@@ -158,7 +158,7 @@ include <../params.scad>
 //       test plate (h 4): d 6 ~ 180 .. 210, d 10 ~ 510 .. 710,
 //                         d 16 ~ 1300 .. 2600 N/mm (S = 1: fat pads 2x)
 //     Hollow core c: ring area, S = (d - c) / (4 h); d 10, c 4, h 4:
-//       k_c ~ 430 .. 490 N/mm (~30 % softer than solid).
+//       k_c ~ 430 .. 490 N/mm (15 .. 30 % softer than solid).
 //   DOME, cap radius R = (a^2 + t^2) / (2 t), a = d/2, t = dome_h. Hertz
 //     against a flat:  F ~ (4/3) E* sqrt(R) delta^1.5.
 //       d 10, h 6 (hemisphere, R 5): F ~ 103 delta^1.5 N (delta in mm):

@@ -79,9 +79,11 @@ include <../params.scad>
 //   size     = 24    tube outside width (square). Everything scales from it.
 //   length   = 20    tube length along the axis (Z), not counting the drive.
 //                    Torque grows with the cord length Lc = length - z_lb -
-//                    lip_t (13.25 at the defaults); needs Lc >= 4.
-//   wall     = 2.8   tube wall (>= 1.2). Sized so the walls, bent by the cord
-//                    pressure, stay below ~15 MPa at 2 N*m (see ESTIMATES).
+//                    lip_t (13.41 at the defaults); needs Lc >= 4.
+//   wall     = auto  tube wall, auto = size x 0.117 (2.8 at size 24), >= 1.2.
+//                    The cords bend the walls; at equal proportions the
+//                    wall stress then stays the same at every size (~15 MPa
+//                    at 2 N*m at the defaults, see ESTIMATES).
 //   shaft    = auto  shaft square side across flats (11.62 at the defaults).
 //                    Rule: the shaft corners, twisted by `twist`, would
 //                    squeeze a cord filling the pocket by at most `strain`:
@@ -117,9 +119,10 @@ include <../params.scad>
 //   flange_w = 7, flange_t = 3, hole_d = 3.4: square mounting flange round
 //                    the tube base, 4 holes on a (size + flange_w) square
 //                    (M3 on 31 mm at the defaults). flange_w = 0: no flange.
-//   Derived (echoed): neck radius R_n = bore circumradius + 1.5, foot radius
-//   R_f = R_n + 1.6, bottom lip / cord bottom z_lb = 5.15, cord top
-//   z_lt = length - lip_t.
+//   Derived: neck radius R_n = max(bore circumradius + 1.5, h - 0.4) = 5.41,
+//   foot radius R_f = R_n + 1.6, bottom lip top = cord bottom z_lb = 4.99,
+//   cord top z_lt = length - lip_t (torsion_spring_geom() returns them all;
+//   the stiffness, torques and PETG stresses are echoed on render).
 //
 // ESTIMATES (TPU 95A E ~ 26 MPa, G ~ 9 MPa; PETG E ~ 2000 MPa, ~45 MPa)
 //   Twist stiffness, simple compression model (one cord; h = shaft/2 = the
@@ -140,17 +143,31 @@ include <../params.scad>
 //   the C factors come from 2D FEA (below; ri = pocket inradius) and are
 //   1 for solid cords with a long contact.
 //   Defaults: a = 9.2, h = 5.81, D0 = 6.58, s1 = 1.57, t1 = 5.01,
-//     ln(D0/t1) = 0.272, Lc = 13.25:
+//     ln(D0/t1) = 0.272, Lc = 13.41:
 //     per cord and mm: Ec x 0.24 mm^3 = 8 (compression) + G x 18.4 mm^3 = 165
-//     (drag) N*mm/rad -> solid cords 4 x 13.25 x 174 = 9200 N*mm/rad
-//     = 161 N*mm/deg; x C_contact(0.27) = 0.78 x C_core(0.57) = 0.47
-//     -> k0 = 59 N*mm per degree (0.059 N*m/deg) at small angles.
+//     (drag) N*mm/rad -> solid cords 4 x 13.41 x 174 = 9330 N*mm/rad
+//     = 163 N*mm/deg; x C_contact(0.27) = 0.78 x C_core(0.57) = 0.47
+//     -> k0 = 60 N*mm per degree (0.06 N*m/deg) at small angles.
 //   So the drag does most of the work: the spring relies on the TPU
 //   gripping the shaft faces. Frictionless (wet, greasy, dusty) FEA gives
 //   ~1/4 of the torque at small angles.
 //   FEA check (CalculiX, 2D plane strain, Neo-Hooke TPU G = 8.8 MPa,
 //   rigid PETG, contact with friction 0.6 and no adhesion), default unit:
-//@@FEA@@
+//     twist    torque of the unit, N*mm            peak TPU stretch
+//              friction 0.6    0.3    none         (friction 0.6)
+//      1 deg        57          39      15              2 %
+//      5           318         225      95             11 %
+//     10           713         536     250             24 %
+//     15          1174         921     460             36 %
+//     20          1738        1367     726             54 %
+//     25         ~2480 *              1074
+//     30         ~3300 *             ~1460 *
+//   * the FEA with friction 0.6 stopped converging past 20 deg (0.3: past
+//     22.5 deg, 1640 N*mm there; frictionless: past 27.5): extrapolated with
+//     the frictionless increments x 2.1 (their ratio at 15-20 deg). The rise
+//     is progressive: the secant stiffness at 30 deg is ~1.9x k0.
+//     torsion_spring_torque() follows the friction-0.6 column (10 / 20 / 30
+//     deg: 0.74 / 1.80 / 3.43 N*m).
 //   The hand model matched FEA within 4-8 % for solid cords with a long
 //   contact (relief 1 / 2.5: 18.0 vs 17.2, 4.6 vs 5.0 N*mm/deg per mm and
 //   cord); the C factors cover shorter contacts and the hollow cores.
@@ -158,22 +175,24 @@ include <../params.scad>
 //   yours with the test piece and scale.
 //   Stiffness knobs (FEA at 1 deg): length (linear); relief 2.5 -> ~2.1x,
 //   3.5 -> ~0.4x (same cores); core_d 0 (solid) -> ~2.2x, 3.0 -> ~1.2x;
-//   size: ~size^3 at equal proportions.
+//   size: torque per mm of cord ~size^2 at equal proportions (the bottom
+//   lip zone grows with size, so check the echoed cord length).
 //   Strength (PETG, default unit):
 //   - square drive / shaft in torsion (11.62 square, 6.5 hex bore; Saint-
 //     Venant, finite differences): tau = T / 300 mm^3 -> 7 MPa at 2 N*m,
 //     12 MPa at 3.5 N*m. The layer planes carry this shear, so keep
-//     working torque <= ~2 N*m, peaks <= ~4 N*m.
+//     working torque <= ~2 N*m, peaks <= ~3.5 N*m (walls, below).
 //   - tube walls: each cord pushes its wall with F ~ T / (4 x 5.3 mm)
 //     (FEA), ~4 mm off the wall middle; as a clamped beam across the cavity
-//     M ~ 0.145 F (2a), sigma = 6 M / (Lc wall^2) -> 12 MPa at 1.7 N*m
-//     (20 deg), ~20 MPa at 3 N*m (the lips at both ends roughly halve this).
+//     M ~ 0.145 F (2a), sigma = 6 M / (Lc wall^2) -> 13 MPa at 1.8 N*m
+//     (20 deg), 25 MPa at 3.4 N*m (30 deg); conservative: the load is
+//     spread and the lips at both ends carry part of it.
 //   - axial: the foot / upper cone bear on the bottom lip's waist; lip rim
 //     in shear 2 pi (R_n + 0.4) rim = 43 mm^2 -> ~600 N to fail; neck in
 //     tension (layers) ~1000 N. Use ~300 N working.
 //   - radial (as a bushing): ~120 N/mm (two cords squeezed, four dragged);
-//     after a - c_tip = 1.4 mm the shaft corners touch the tube walls
-//     (PETG on PETG plain bearing).
+//     after 0.4 mm the shaft bears on the holes of both lips (PETG on PETG
+//     plain bearings at both ends), so it cannot rub the cords to pieces.
 //   - flange: 4 x M3 on a 31 mm square: 34 N per screw at 3 N*m.
 //   TPU strain (FEA): peak stretch at the cord corners 11 % at 5 deg, 24 %
 //   at 10, 36 % at 15, 54 % at 20 deg (peak squeeze 37 %); 95 % of the
@@ -181,7 +200,7 @@ include <../params.scad>
 //   and +-30 deg as the limit.
 //   Sizing example: rover of 4 kg on 4 swing arms 80 mm long: 9.8 N x 80 =
 //   0.78 N*m per pivot -> ~11 deg static sag, ~20 deg left for bumps.
-//   Drone of 1.5 kg landing at 3 g on 4 legs 60 mm long: 0.66 N*m -> ~10 deg.
+//   Drone of 1.5 kg landing at 3 g on 4 legs 60 mm long: 0.66 N*m -> ~9 deg.
 //
 // TEST PIECE (show = "test"): torsion_spring_test() - the default unit with
 //   a +-40 deg angle scale on its flange (ticks every 5 deg) and a loose
@@ -212,9 +231,10 @@ include <../params.scad>
 //       torsion_spring_geom(...) all derived sizes (read with ts_v(g, key)).
 //
 // RULES FOR YOUR OWN PARTS
-//   - Fuse PETG only to the outside of the tube (|x| or |y| >= size/2 - wall)
-//     and keep it out of the region above the top lip within the drive's
-//     swept circle (radius c_tip + 0.4, 8.2 at the defaults).
+//   - Your PETG may fuse to the tube walls but must stay out of the cavity
+//     (keep max(|x|, |y|) >= size/2 - wall for 0 <= z <= length) and out of
+//     the drive's swept circle above the tube (radius c_tip + 0.4 = 8.2 at
+//     the defaults, plus 0.6 mm above the tube top).
 //   - Your arm/lever goes on the square drive (socket = shaft + 0.4, corner
 //     radius corner_r + 0.2) and must stay >= 0.6 mm clear of the tube top
 //     (a socket depth of drive_h - 1 does that), or put a washer between.
@@ -233,14 +253,18 @@ include <../params.scad>
 //     sags a few degrees more over days and takes a set. Design the static
 //     sag <= ~10-15 deg and keep the rest for bumps.
 //   - The estimate is +-30 % (TPU brand and infill, friction, print
-//     squish). Calibrate with the test piece. FEA with friction converged
-//     to 20 deg; beyond that the numbers above are the frictionless shape
-//     scaled (see the table).
-//   - PETG torque limit ~2 N*m working / ~4 N*m peak at the default size
-//     (walls and the drive's layer planes); bigger units scale ~size^3.
-//   - A bushing, not a precision bearing: 0.6 mm axial play, ~1/120 mm
-//     per N radially, and it tilts under a bending moment. Keep the arm
-//     close to the tube top, or carry big side loads on a separate pin.
+//     squish). Calibrate with the test piece. The FEA is 2D (long cords;
+//     the cord ends at the lips are ignored), loading only (no hysteresis),
+//     and with friction it converged to 20 deg; beyond that the numbers are
+//     the frictionless shape scaled (see the table).
+//   - PETG torque limit ~2 N*m working / ~3.5 N*m peak at the default size
+//     (tube walls, then the drive's layer planes) - which is what the
+//     default unit reaches at 30 deg. The echo warns when a design's torque
+//     at `twist` overloads the PETG.
+//   - A bushing, not a precision bearing: 0.6 mm axial play, up to 0.4 mm
+//     radial play (cords first, then the lip holes), and it tilts a little
+//     under a bending moment. Keep the arm close to the tube top, or carry
+//     big side loads on a separate pin or a second unit.
 //   - TPU stiffens in the cold (much below 0 C) and softens when hot;
 //     PETG is fine to ~70 C.
 //   - The capture check treats the TPU as rigid. A very large twist could
@@ -256,7 +280,7 @@ ts_fn = 72;      // round parts; divisible by 6 and 8 so hex and 45 deg points a
 // -----------------------------------------------------------------------
 // Defaults (shared by every module, so the parts always agree)
 // -----------------------------------------------------------------------
-ts_size = 24;      ts_length = 20;    ts_wall = 2.8;
+ts_size = 24;      ts_length = 20;    ts_wall = undef;      // undef = auto
 ts_twist = 30;     ts_strain = 0.5;   ts_corner_r = 1.0;  ts_cav_r = 1.5;
 ts_relief = undef; ts_core_d = undef;   // undef = auto (see PARAMETERS)
 ts_bore = 6.5;     ts_bore_shape = "hex";
@@ -280,7 +304,8 @@ function ts_geom(size = ts_size, length = ts_length, wall = ts_wall, shaft = und
                  strain = ts_strain, corner_r = ts_corner_r, cav_r = ts_cav_r, relief = ts_relief,
                  core_d = ts_core_d, bore = ts_bore, bore_shape = ts_bore_shape, drive_h = ts_drive_h,
                  lip_t = ts_lip_t, rim = ts_rim) =
-    let(a = size / 2 - wall,
+    let(wall = is_undef(wall) ? max(min_petg, round(size * 7 / 6) / 10) : wall,   // auto: 2.8 at size 24
+        a = size / 2 - wall,
         B = is_undef(shaft) ? sqrt(2) * (ts_tip_auto(a, twist, strain, corner_r) + corner_r * (sqrt(2) - 1)) : shaft,
         c = B / sqrt(2),
         c_tip = c - corner_r * (sqrt(2) - 1),
@@ -290,7 +315,7 @@ function ts_geom(size = ts_size, length = ts_length, wall = ts_wall, shaft = und
         core_auto = floor(10 * 2 * (ri - 1.25)) / 10,
         core_d = is_undef(core_d) ? (core_auto >= 1.6 ? core_auto : 0) : core_d,
         bore_rc = bore_shape == "hex" ? bore / sqrt(3) : bore_shape == "square" ? bore / sqrt(2) : bore / 2,
-        R_n = max(bore_rc + min_petg + 0.3, 2.5),     // neck radius (passes the bottom lip)
+        R_n = max(bore_rc + min_petg + 0.3, h - xy_clear),   // neck radius (passes the bottom lip)
         R_f = R_n + xy_clear + min_petg,             // foot radius on the bed (under the lip)
         z_f = R_f - R_n,                             // top of the foot cone
         z_n1 = z_f + rim + 2 * (z_clear - xy_clear), // top of the neck
@@ -326,9 +351,16 @@ function ts_k(g, E = 26, G = 9) =
 ts_contact_table = [[0, 0.45], [0.15, 0.59], [0.27, 0.78], [0.39, 0.93], [0.76, 1.04], [1, 1.05]];
 // hollow cords: FEA factor vs core_d / (2 * ri)  (0.6 and up extrapolated)
 ts_core_table = [[0, 1], [0.5, 0.56], [0.57, 0.47], [0.7, 0.33], [1, 0.2]];
-// secant torque-per-degree multiplier vs twist (FEA of the default unit, stick friction)
-ts_prog_table = [[0, 1], [40, 1]];  // placeholder
+// secant torque-per-degree multiplier vs twist: FEA of the default unit, friction 0.6, to 20 deg;
+// beyond that the frictionless FEA increments x 2.1 (their ratio at 15-20 deg); 40 extrapolated
+ts_prog_table = [[0, 1], [1, 1], [5, 1.11], [10, 1.24], [15, 1.36], [20, 1.51], [25, 1.73], [30, 1.92], [40, 2.3]];
 function ts_torque(g, deg) = ts_k(g)[0] * deg * lookup(abs(deg), ts_prog_table);
+// PETG stresses (MPa) at torque T (N*mm): [tube wall bending (clamped beam, no
+// help from the lips), shear in the square drive / shaft (0.19 B^3)]
+function ts_stress(g, T) =
+    let(F = T / (4 * 0.91 * ts_v(g, "h")),              // push of one cord on its wall (FEA arm 0.91 h)
+        M = 0.145 * F * 2 * ts_v(g, "a"))
+    [6 * M / (ts_v(g, "Lc") * pow(ts_v(g, "wall"), 2)), T / (0.19 * pow(ts_v(g, "B"), 3))];
 
 // public helpers
 function torsion_spring_geom(size = ts_size, length = ts_length, wall = ts_wall, shaft = undef,
@@ -355,7 +387,10 @@ module ts_checks(g) {
     assert(ts_v(g, "core_d") == 0 || (a - ts_v(g, "ri")) - ts_v(g, "relief") - ts_v(g, "core_d") / 2 >= min_tpu,
            "torsion_spring: core_d + relief too big: TPU between core and cord tip < min_tpu");
     assert(ts_v(g, "bore") >= 1.6, "torsion_spring: bore must be >= 1.6");
-    assert(h - ts_v(g, "bore_rc") >= min_petg, "torsion_spring: bore too big for the shaft (wall < 1.2)");
+    assert(h - ts_v(g, "bore_rc") >= min_petg,
+           str("torsion_spring: bore too big for the shaft (wall < 1.2): use bore <= ",
+               floor(10 * 2 * (h - min_petg) * (ts_v(g, "bore_shape") == "hex" ? sqrt(3) / 2 : ts_v(g, "bore_shape") == "square" ? 1 / sqrt(2) : 1)) / 10,
+               " for this size, or a bigger size"));
     assert(ts_v(g, "R_n") + xy_clear + 0.6 <= c_tip, "torsion_spring: bore too big for the shaft neck");
     assert(ts_v(g, "Lc") >= 4, str("torsion_spring: length too short, needs >= ", ts_v(g, "z_lb") + ts_v(g, "lip_t") + 4));
 }
@@ -441,12 +476,20 @@ module ts_tpu_region_3d(g)
 
 module ts_echo(g) {
     k = ts_k(g);
+    T = ts_torque(g, ts_v(g, "twist"));
+    st = ts_stress(g, T);
     echo(str("torsion_spring: size ", ts_v(g, "size"), " x ", ts_v(g, "L"), ", shaft ", round(ts_v(g, "B") * 100) / 100,
              " (h ", round(ts_v(g, "h") * 100) / 100, ", corner tip r ", round(ts_v(g, "c_tip") * 100) / 100,
              "), cord length ", round(ts_v(g, "Lc") * 100) / 100, ", relief ", ts_v(g, "relief"), ", core_d ", ts_v(g, "core_d"),
              ", k0 ~ ", round(k[0]), " N*mm/deg (compression ", round(k[1]), " + drag ", round(k[2]), ")",
              ", torque at 10/20/30 deg ~ ", round(ts_torque(g, 10)) / 1000, " / ", round(ts_torque(g, 20)) / 1000,
-             " / ", round(ts_torque(g, 30)) / 1000, " N*m"));
+             " / ", round(ts_torque(g, 30)) / 1000, " N*m; at ", ts_v(g, "twist"), " deg: wall ~", round(st[0]),
+             " MPa, drive ~", round(st[1]), " MPa"));
+    if (st[0] > 30 || st[1] > 15)
+        echo(str("torsion_spring: WARNING: at ", ts_v(g, "twist"), " deg the estimated torque (", round(T / 100) / 10,
+                 " N*m) overloads the PETG (wall ", round(st[0]), " MPa / drive ", round(st[1]),
+                 " MPa; aim for <= 30 / 15): use a bigger relief or core_d, a shorter length, a thicker wall,",
+                 " or stop the swing earlier"));
 }
 
 // -----------------------------------------------------------------------
