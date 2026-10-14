@@ -9,23 +9,23 @@
   ],
   "petg_tpu_overlap_mm3": 0.0,
   "footprint_mm": [
-   118.6,
-   102.9,
+   126.1,
+   107.0,
    70.0
   ],
-  "petg_cm3": 147.7,
-  "tpu_cm3": 15.3,
+  "petg_cm3": 157.6,
+  "tpu_cm3": 31.3,
   "bambu_3mf_parts": [
    [
     "wood_clamp collar + lever (PETG, left nozzle)",
     1,
-    15960,
+    22360,
     "normal_part"
    ],
    [
     "wood_clamp spring liner (TPU 95A, right nozzle)",
     2,
-    4256,
+    10648,
     "normal_part"
    ],
    [
@@ -36,8 +36,8 @@
    ]
   ],
   "slice_test": {
-   "filament_mm": "48793.39, 7215.80",
-   "time": "15h 18m 7s",
+   "filament_mm": "51529.16, 14112.40",
+   "time": "18h 24m 0s",
    "layers": 350,
    "tool_changes": 352,
    "warnings": [
@@ -59,23 +59,23 @@
   ],
   "petg_tpu_overlap_mm3": 0.0,
   "footprint_mm": [
-   118.6,
-   102.9,
+   126.1,
+   107.0,
    21.4
   ],
-  "petg_cm3": 45.3,
-  "tpu_cm3": 4.6,
+  "petg_cm3": 48.4,
+  "tpu_cm3": 9.4,
   "bambu_3mf_parts": [
    [
     "hinge_test collar + lever (PETG, left nozzle)",
     1,
-    6276,
+    8770,
     "normal_part"
    ],
    [
     "hinge_test spring liner (TPU 95A, right nozzle)",
     2,
-    4256,
+    6712,
     "normal_part"
    ],
    [
@@ -86,8 +86,8 @@
    ]
   ],
   "slice_test": {
-   "filament_mm": "15077.38, 2195.21",
-   "time": "4h 44m 21s",
+   "filament_mm": "15952.77, 4275.22",
+   "time": "5h 35m 41s",
    "layers": 107,
    "tool_changes": 109,
    "warnings": [

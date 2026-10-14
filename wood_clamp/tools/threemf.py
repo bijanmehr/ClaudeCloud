@@ -99,7 +99,7 @@ def _mesh_xml(mesh):
     return f"<mesh>\n<vertices>\n{v}\n</vertices>\n<triangles>\n{t}\n</triangles>\n</mesh>"
 
 
-def write_bambu_3mf(path, object_name, parts, offset=(0.0, 0.0, 0.0)):
+def write_bambu_3mf(path, object_name, parts, offset=(0.0, 0.0, 0.0), settings=None):
     """One object made of several parts, laid out the way Bambu Studio /
     OrcaSlicer save their own projects: the parts live in
     3D/Objects/object_1.model, the build object assembles them as
@@ -128,6 +128,10 @@ def write_bambu_3mf(path, object_name, parts, offset=(0.0, 0.0, 0.0)):
     cfg = ['<?xml version="1.0" encoding="UTF-8"?>', "<config>", f'  <object id="{main_id}">',
            f'    <metadata key="name" value={quoteattr(object_name)}/>',
            f'    <metadata key="extruder" value="{parts[0][2]}"/>']
+    # per-object settings (e.g. beam interlocking); Bambu Studio applies them
+    # when the file is opened as a project
+    for key, val in (settings or {}).items():
+        cfg.append(f'    <metadata key="{key}" value={quoteattr(str(val))}/>')
     for i, p in enumerate(parts):
         name, filament = p[0], p[2]
         subtype = p[3] if len(p) > 3 else "normal_part"

@@ -40,13 +40,32 @@ squeeze = 0.45;
 fit_gap = 0.25;
 
 /* [TPU spring liner] */
-liner_base_t = 1.0;   // TPU skin bonded to the PETG
+liner_base_t = 3.0;   // solid TPU skin: thick enough to hold the lock ribs and the slicer's interlocking
+                      // zone (about 1.5 mm deep at depth 1) with 1.5 mm of plain TPU left under the fins
 fin_h = 1.9;          // radial height of the spring fins
 fin_t = 1.0;          // fin thickness (thinner = softer)
 fin_lean = 30;        // fin lean from radial (deg), towards the back of the C
 fin_pitch = 3.2;      // fin spacing along the wood surface
 fin_end_taper = 2.5;  // fins fade out over this height at top and bottom
-liner_end_gap = 0.6;  // liner stops short of the slit by this much
+
+/* [TPU-to-PETG lock] */
+// PETG and TPU do not reliably stick to each other, so the liner is held by
+// shape: PETG lips over the skin at both faces, PETG dovetail ribs reaching
+// into the skin (broken along the height, staggered, so the TPU wraps round
+// and between them), and PETG walls over both ends of the skin at the slit.
+// Bambu Studio's beam interlocking is added on top (set in the 3MF).
+lip_t = 0.6;          // lips: 3 layers
+lip_depth = 1.2;      // how far the lips reach over the skin
+end_wall = 1.0;       // PETG wall over each end of the skin, beside the slit ...
+end_wall_depth = 1.6; // ... covering the outer half of the skin end (deeper would pull the
+                      // slicer's interlocking zone into the fin roots)
+rib_neck = 1.3;       // dovetail ribs: neck at the bore
+rib_head = 2.1;       //                head inside the skin
+rib_depth = 0.8;      //                reach into the skin; kept shallow so the slicer's
+                      //                interlocking zone around them stays clear of the fins
+rib_step = 15;        // degrees between ribs
+rib_seg = 5.0;        // rib pieces along the height ...
+rib_gap_z = 1.2;      // ... with TPU-filled breaks between them
 
 /* [PETG collar] */
 shell_wall = 6.0;     // stiff enough that the C closes evenly instead of curling at the slit
@@ -80,6 +99,7 @@ $fn = 128;
 
 /* [Hidden] */
 lever_open = 1;       // collar opening 0..1, used by the build checks
+fea_plain = false;    // leave out the small lock features (stress models)
 lever_theta = 0;
 
 // ---------------------------------------------------------------------
@@ -168,26 +188,56 @@ module c_sector(a) {
     }
 }
 
-// Dovetail key outline (TPU side) at angle k: neck at the bore, wider inside
-// the PETG. Starts 1 mm inside the bore so its flanks cross the bore cleanly.
-key_neck = 2.2; key_flare = 3.4; key_depth = 1.4;
-key_angles = [90, 135, 180, 225, 270];   // away from the high-bending zone near the slit
-module key_2d(k, br) {
-    w0 = key_neck - (key_flare - key_neck) / key_depth;
-    rotate(k) polygon([[br - 1, -w0 / 2], [br + key_depth, -key_flare / 2],
-                       [br + key_depth, key_flare / 2], [br - 1, w0 / 2]]);
-}
-
 module ring_2d(open) {
     dr = st_dr(open);
     intersection() {
-        difference() {
-            circle(r = shell_r + dr);
-            circle(r = bore_r + dr);
-            for (k = key_angles) key_2d(k, bore_r + dr);
-        }
+        difference() { circle(r = shell_r + dr); circle(r = bore_r + dr); }
         c_sector(st_a(open));
     }
+}
+
+// Where the TPU skin starts, behind the end walls at the slit
+function liner_end_a(open) = st_a(open) + end_wall / (bore_r + st_dr(open)) * 180 / PI;
+
+// ---------------------------------------------------------------------
+// TPU-to-PETG lock (PETG side): ribs, lips, end walls
+// ---------------------------------------------------------------------
+function rib_angles(open) =
+    let(a0 = liner_end_a(open) + 6) [for (a = [a0 : rib_step : 360 - a0]) a];
+module rib_2d(a, br) rotate(a) polygon([
+    [br + 0.3, -rib_neck / 2], [br + 0.3, rib_neck / 2],
+    [br - rib_depth, rib_head / 2], [br - rib_depth, -rib_head / 2]]);
+module ribs_3d(open) {
+    dr = st_dr(open);
+    period = rib_seg + rib_gap_z;
+    angles = rib_angles(open);
+    for (i = [0 : len(angles) - 1]) {
+        z_first = lip_t + rib_gap_z + (i % 2) * period / 2;     // stagger every other rib
+        for (z0 = [z_first : period : clamp_h]) {
+            z1 = min(z0 + rib_seg, clamp_h - lip_t - rib_gap_z);
+            if (z1 - z0 > 1.0) translate([0, 0, z0]) linear_extrude(z1 - z0) rib_2d(angles[i], bore_r + dr);
+        }
+    }
+}
+module lips_3d(open) {
+    dr = st_dr(open);
+    for (z = [0, clamp_h - lip_t]) translate([0, 0, z]) linear_extrude(lip_t)
+        intersection() {
+            difference() { circle(r = bore_r + dr + 0.05); circle(r = bore_r + dr - lip_depth); }
+            c_sector(st_a(open));
+        }
+}
+module end_walls_2d(open) {
+    dr = st_dr(open);
+    intersection() {
+        difference() { circle(r = bore_r + dr + 0.05); circle(r = bore_r + dr - end_wall_depth); }
+        difference() { c_sector(st_a(open)); c_sector(liner_end_a(open)); }
+    }
+}
+module lock_3d(open) {
+    ribs_3d(open);
+    lips_3d(open);
+    linear_extrude(clamp_h) end_walls_2d(open);
 }
 
 // Fins lean towards the back of the C (180 deg): as the C closes, its
@@ -196,7 +246,7 @@ module ring_2d(open) {
 function fin_step(open) = fin_pitch / (tip_r + st_dr(open)) * 180 / PI;
 function fin_angles(open) =
     let(step = fin_step(open),
-        a_min = st_a(open) + (liner_end_gap + 3) / (tip_r + st_dr(open)) * 180 / PI,
+        a_min = liner_end_a(open) + 3 / (tip_r + st_dr(open)) * 180 / PI,
         n = floor((180 - a_min) / step))
     [for (i = [1 : n]) 180 - i * step, for (i = [1 : n]) -(180 - i * step)];
 
@@ -214,23 +264,23 @@ module fin_2d(a, lin_r, tip_rr) {
 
 module liner_2d(open) {
     dr = st_dr(open);
-    ae = st_a(open) + liner_end_gap / (bore_r + dr) * 180 / PI;
     intersection() {
         union() {
             difference() { circle(r = bore_r + dr); circle(r = liner_in_r + dr); }
-            for (k = key_angles) key_2d(k, bore_r + dr);
             for (a = fin_angles(open)) fin_2d(a, liner_in_r + dr, tip_r + dr);
         }
-        c_sector(ae);
+        c_sector(liner_end_a(open));
     }
 }
 
 module liner_3d(open) {
     dr = st_dr(open);
     // fins grow from nothing over fin_end_taper at both ends, so the
-    // pressure on the wood ramps up instead of stopping at a sharp edge
+    // pressure on the wood ramps up instead of stopping at a sharp edge;
+    // the TPU fills round the PETG lock features (exact shared faces)
     difference() {
         linear_extrude(clamp_h) liner_2d(open);
+        lock_3d(open);
         translate([0, 0, -eps]) cylinder(r1 = liner_in_r + dr, r2 = tip_r + dr - 0.5, h = fin_end_taper + eps);
         translate([0, 0, clamp_h - fin_end_taper]) cylinder(r1 = tip_r + dr - 0.5, r2 = liner_in_r + dr, h = fin_end_taper + eps);
     }
@@ -406,6 +456,7 @@ module cam_layers() for (i = [0 : cam_bands - 1]) translate([0, 0, cam_z(i)]) li
 // fixed PETG: collar, ear A, arm, hinge knuckles and pin
 module collar_3d(open) {
     linear_extrude(clamp_h) ring_2d(open);
+    if (!fea_plain) lock_3d(open);
     move_A(open) linear_extrude(clamp_h) earA_2d();
     move_B(open) {
         linear_extrude(clamp_h) arm_2d();

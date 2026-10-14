@@ -21,6 +21,15 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "print")
 BED_CENTRE = (175.0, 160.0)      # Bambu Lab H2D plate is 350 x 320 mm
 
+# Bambu Studio beam interlocking, saved as object settings in the Bambu 3MF (applied when the
+# file is opened as a project). Narrow 0.6 mm beams at depth 1 keep the woven PETG/TPU zone
+# inside the 3 mm TPU skin: measured with Bambu Studio's own slicing code on the hinge test,
+# PETG beams stay at least 0.65 mm clear of the fin roots and appear on 96 of 107 layers
+# (the default boundary avoidance of 2 leaves out the faces, where the PETG lips hold the TPU).
+INTERLOCK = {"interlocking_beam": 1, "interlocking_beam_width": 0.6, "interlocking_depth": 1,
+             "interlocking_boundary_avoidance": 2, "interlocking_beam_layer_count": 2,
+             "interlocking_orientation": 22.5}
+
 VARIANTS = {
     "wood_clamp": [],
     "hinge_test": ["-D", "clamp_h=21.4", "-D", "cam_bands=1"],   # one cam layer between two knuckles
@@ -68,7 +77,7 @@ def main(user_args):
                  (f"{name} spring liner (TPU 95A, right nozzle)", tpu, 2),
                  ("hinge support blocker", blocker, 1, "support_blocker")]
         bambu = os.path.join(OUT, f"{name}_BambuStudio_H2D.3mf")
-        threemf.write_bambu_3mf(bambu, name, parts, offset)
+        threemf.write_bambu_3mf(bambu, name, parts, offset, settings=INTERLOCK)
         prusa = os.path.join(OUT, f"{name}_PrusaSlicer.3mf")
         threemf.write_multimaterial_3mf(prusa, name, parts, offset)
         sl = slicecheck.slice_multimaterial(prusa, os.path.join("/tmp", f"{name}_mm.gcode"))

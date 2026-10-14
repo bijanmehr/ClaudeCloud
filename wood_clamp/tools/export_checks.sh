@@ -11,7 +11,7 @@ openscad -q -D 'part="lever"' -D 'lever_open=0' -D 'lever_theta=0' "$@" -o build
 openscad -D 'part="lever"' -D 'lever_open=1' -D 'lever_theta=-135' "$@" -o build/chk/lever_open.stl clamp.scad 2>&1 \
   | grep GEOM | sed 's/.*GEOM //; s/"$//' > build/chk/geom.json
 # coarser facets for the FEA rebuild (tools/brep.py, collar_fea.py, stress_check.py)
-openscad -q -D 'part="collar_closed"' -D '$fn=48' "$@" -o build/chk/fea_collar_closed.stl clamp.scad
+openscad -q -D 'part="collar_closed"' -D '$fn=48' -D fea_plain=true "$@" -o build/chk/fea_collar_closed.stl clamp.scad
 openscad -q -D 'part="lever"' -D 'lever_open=0' -D 'lever_theta=0' -D '$fn=48' "$@" -o build/chk/fea_lever_closed.stl clamp.scad
 openscad -q -D 'part="petg"' "$@" -o build/petg.stl clamp.scad
 openscad -q -D 'part="tpu"' "$@" -o build/tpu.stl clamp.scad
