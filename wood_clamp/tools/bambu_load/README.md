@@ -71,3 +71,30 @@ library.
 Anything that needs the printer and filament presets, such as checking the
 vendor of a project's settings or loading embedded presets. Those only matter
 for 3MF projects saved by Bambu Studio itself.
+
+# ilk_probe: measure Bambu Studio's beam interlocking
+
+`ilk_probe.cpp` slices test objects through Bambu Studio's own
+`PrintObject::slice()` (the same code as the slicer, including
+`InterlockingGenerator`) and reports where the interlocking beams go: on which
+layers, and how far each material reaches into the other. All the
+interlocking numbers in the READMEs and notes came from it.
+
+```
+python3 build_ilk_probe.py /path/to/BambuStudio/build   # after bbs_load is built
+ilk_probe all                     # built-in cases: blocks, gaps, overlaps, thin coupons
+ilk_probe --3mf file.3mf [name]   # a real 3MF, with its own object settings
+```
+
+- `--3mf` reports the layers with interlocking and how far the PETG and TPU
+  beams reach from the bore centre. `ILK_RDEEP=<r>` adds a histogram by
+  angle; `ILK_AVOID` / `ILK_BEAM` override boundary avoidance and on/off.
+- `ilk_results.txt` is the output of `ilk_probe all` on commit 79df7ae. It is
+  the record behind these findings:
+  - at the default boundary avoidance (2), joints less than about 2.4 mm high
+    or about 5 mm wide get no beams, and the outer 1 to 2.5 mm of every joint
+    gets none;
+  - a gap of 0.01 mm between the two bodies stops all interlocking (the gap
+    tolerance is compared in the wrong unit);
+  - with overlapping bodies, the later part keeps its full shape and carves
+    the earlier one.

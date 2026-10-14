@@ -72,10 +72,12 @@ All files are for **38.0 mm wood**. If yours measures differently, see
    small icons on the plate), choose **Custom**, and put PETG on the **left**
    nozzle and TPU on the **right**.
 6. **Beam interlocking** (the STLs cannot carry it): right-click the object >
-   *Add settings* > *Others*, tick *Use beam interlocking*, and set
-   *Interlocking beam width* **0.6 mm** and *Interlocking depth* **1**. Leave
-   the other interlocking values at their defaults: beam layers 2, boundary
-   avoidance 2, direction 22.5°. See "Why these interlocking values" below.
+   *Edit Process Settings*. The process panel now shows this object's own
+   settings. Turn on the *Advanced* switch at the top of the panel, open the
+   *Others* tab, tick *Use beam interlocking*, and set *Interlocking beam
+   width* **0.6 mm** and *Interlocking depth* **1**. Leave the other
+   interlocking values at their defaults: beam layers 2, boundary avoidance 2,
+   direction 22.5°. See "Why these interlocking values" below.
 7. Apply the settings below and slice. In the sliced Preview, the joint
    between the lining and the collar should show a fine woven pattern.
 
@@ -226,18 +228,23 @@ diameter + 0.44). If it comes out larger by some amount, rebuild with
 
   The highest stress across the layers is in the sharp inside corner where the
   ear the cam presses meets the outside of the ring; 0.5 mm away it is already
-  below 6 MPa. Even if
-  the fins jammed solid (about 430 N on the cam), the stress across the layers
-  stays near 9 MPa at the pin and 16 MPa in that corner. The FEA model leaves
-  out the small lining-lock features (lips, ribs, end walls); they only add
-  material on the inside of the bore. The lever was checked with the worst-case loads from the rigid
-  model (stiff TPU, wood 0.4 mm oversize: about 600 N on the cam and 68 N on
-  the handle, roughly twice the realistic values). Closed, its highest stress is 11.5 MPa (4.1 MPa across the
-  layers). While it is being pushed, 99.5 % of it is below 11.4 MPa. The model
-  shows spikes only on the sharp inside corners where each cam ring meets the
-  handle neck: a linear model always reads infinite at a sharp corner, and
-  0.5 mm away the stress is already below about 30 MPa (15 MPa across the
-  layers).
+  below 6 MPa. Even if the fins jammed solid (about 430 N on the cam), the
+  stress across the layers stays near 9 MPa at the pin and 16 MPa in that
+  corner. The FEA model leaves out the small lining-lock features (lips, ribs,
+  end walls); they only add material on the inside of the bore.
+
+  The lever was checked with the worst-case loads from the rigid model (stiff
+  TPU, wood 0.4 mm oversize: about 590 N on the cam and 64 N on the handle,
+  roughly twice the realistic values). Closed, its highest stress is 11.1 MPa
+  (4.2 MPa across the layers). While it is being pushed, 99.5 % of it is below
+  11.7 MPa, and the middle of the handle stays below about 16 MPa. The model
+  shows spikes in two places:
+  - the sharp inside corners where each cam ring meets the handle neck (up to
+    62 MPa on the corner itself). A linear model always reads very high at a
+    sharp corner; 0.5 mm away the stress is below about 36 MPa (17 MPa across
+    the layers), at twice the realistic load;
+  - the small patch where the model puts the hand force on the handle tip.
+    That is a modelling artefact: the real bending there is almost zero.
 
   Two changes came out of these checks: the hinge pin went from 6 to 8 mm
   with small fillets where it meets each knuckle, and in the knuckle layers
@@ -246,7 +253,10 @@ diameter + 0.44). If it comes out larger by some amount, rebuild with
   out of the collar in any of 26 directions; it is stopped within 0.15 mm
   (`../hybrid_lib/tools/capture_check.py`). The first design's lining, the one
   in the hinge test that was printed, was free to slide straight up or down,
-  held only by adhesion.
+  held only by adhesion. The test treats both parts as rigid, so it is a
+  necessary condition, not a proof: soft TPU can still be pulled out by
+  bending it a lot. The fingernail check on the new hinge test (above) is the
+  real test.
 - **Beam interlocking:** checked by slicing the hinge test with Bambu Studio's
   own slicing code. The woven band appears on 96 of 107 layers and stays at
   least 0.65 mm clear of the fin roots.

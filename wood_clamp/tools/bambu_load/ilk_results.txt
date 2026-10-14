@@ -1,0 +1,215 @@
+
+=== A0 blocks 20x20x10, interlocking OFF ===
+settings: on=0 width=0.80 orient=22.5 layers=2 depth=2 avoid=2 layer_h=0.20 | regions=2 layers=50
+RESULT: NO interlocking geometry generated.
+
+=== A1 blocks, defaults (w0.8 o22.5 L2 d2 a2) ===
+settings: on=1 width=0.80 orient=22.5 layers=2 depth=2 avoid=2 layer_h=0.20 | regions=2 layers=50
+RESULT: interlocking on 40 layers (layer 4..43, print_z 1.00..8.80), intruding area total 950.4 mm2
+        extent along interface y: 0.00..20.00 ; TPU reaches into PETG by 2.14 mm (to x=17.86), PETG into TPU by 2.76 mm (to x=22.76)
+
+=== A2 blocks, avoid=1 ===
+settings: on=1 width=0.80 orient=22.5 layers=2 depth=2 avoid=1 layer_h=0.20 | regions=2 layers=50
+RESULT: interlocking on 48 layers (layer 0..47, print_z 0.20..9.60), intruding area total 1261.9 mm2
+        extent along interface y: 0.00..19.23 ; TPU reaches into PETG by 2.14 mm (to x=17.86), PETG into TPU by 2.76 mm (to x=22.76)
+
+=== A3 blocks, avoid=0 ===
+settings: on=1 width=0.80 orient=22.5 layers=2 depth=2 avoid=0 layer_h=0.20 | regions=2 layers=50
+RESULT: interlocking on 50 layers (layer 0..49, print_z 0.20..10.00), intruding area total 1500.1 mm2
+        extent along interface y: 0.00..20.00 ; TPU reaches into PETG by 2.14 mm (to x=17.86), PETG into TPU by 2.76 mm (to x=22.76)
+
+=== A4 blocks, depth=3 ===
+settings: on=1 width=0.80 orient=22.5 layers=2 depth=3 avoid=2 layer_h=0.20 | regions=2 layers=50
+RESULT: interlocking on 40 layers (layer 4..43, print_z 1.00..8.80), intruding area total 1411.2 mm2
+        extent along interface y: 0.00..20.00 ; TPU reaches into PETG by 3.01 mm (to x=16.99), PETG into TPU by 3.26 mm (to x=23.26)
+
+=== A5 blocks, depth=4 ===
+settings: on=1 width=0.80 orient=22.5 layers=2 depth=4 avoid=2 layer_h=0.20 | regions=2 layers=50
+RESULT: interlocking on 40 layers (layer 4..43, print_z 1.00..8.80), intruding area total 1872.0 mm2
+        extent along interface y: 0.00..20.00 ; TPU reaches into PETG by 3.62 mm (to x=16.38), PETG into TPU by 4.23 mm (to x=24.23)
+
+=== A6 blocks, depth=6 ===
+settings: on=1 width=0.80 orient=22.5 layers=2 depth=6 avoid=2 layer_h=0.20 | regions=2 layers=50
+RESULT: interlocking on 40 layers (layer 4..43, print_z 1.00..8.80), intruding area total 2844.8 mm2
+        extent along interface y: 0.00..20.00 ; TPU reaches into PETG by 5.10 mm (to x=14.90), PETG into TPU by 5.71 mm (to x=25.71)
+
+=== A7 blocks, width=1.2 ===
+settings: on=1 width=1.20 orient=22.5 layers=2 depth=2 avoid=2 layer_h=0.20 | regions=2 layers=50
+RESULT: interlocking on 40 layers (layer 4..43, print_z 1.00..8.80), intruding area total 1187.4 mm2
+        extent along interface y: 2.43..20.00 ; TPU reaches into PETG by 3.06 mm (to x=16.94), PETG into TPU by 3.98 mm (to x=23.98)
+
+=== A8 blocks, width=0.4 ===
+settings: on=1 width=0.40 orient=22.5 layers=2 depth=2 avoid=2 layer_h=0.20 | regions=2 layers=50
+RESULT: interlocking on 40 layers (layer 4..43, print_z 1.00..8.80), intruding area total 551.1 mm2
+        extent along interface y: 0.00..19.35 ; TPU reaches into PETG by 1.09 mm (to x=18.91), PETG into TPU by 1.40 mm (to x=21.40)
+
+=== A9 blocks, orient=0 ===
+settings: on=1 width=0.80 orient=0.0 layers=2 depth=2 avoid=2 layer_h=0.20 | regions=2 layers=50
+RESULT: interlocking on 40 layers (layer 4..43, print_z 1.00..8.80), intruding area total 1024.0 mm2
+        extent along interface y: 0.00..20.00 ; TPU reaches into PETG by 1.60 mm (to x=18.40), PETG into TPU by 1.60 mm (to x=21.60)
+
+=== A10 blocks, orient=45 ===
+settings: on=1 width=0.80 orient=45.0 layers=2 depth=2 avoid=2 layer_h=0.20 | regions=2 layers=50
+RESULT: interlocking on 40 layers (layer 4..43, print_z 1.00..8.80), intruding area total 819.2 mm2
+        extent along interface y: 0.00..20.00 ; TPU reaches into PETG by 0.57 mm (to x=19.43), PETG into TPU by 2.83 mm (to x=22.83)
+
+=== A11 blocks, beam layers=1 ===
+settings: on=1 width=0.80 orient=22.5 layers=1 depth=2 avoid=2 layer_h=0.20 | regions=2 layers=50
+RESULT: interlocking on 46 layers (layer 2..47, print_z 0.60..9.60), intruding area total 1093.0 mm2
+        extent along interface y: 0.00..20.00 ; TPU reaches into PETG by 2.14 mm (to x=17.86), PETG into TPU by 2.76 mm (to x=22.76)
+
+=== A12 blocks, beam layers=3 ===
+settings: on=1 width=0.80 orient=22.5 layers=3 depth=2 avoid=2 layer_h=0.20 | regions=2 layers=50
+RESULT: interlocking on 36 layers (layer 6..41, print_z 1.40..8.40), intruding area total 855.4 mm2
+        extent along interface y: 0.00..20.00 ; TPU reaches into PETG by 2.14 mm (to x=17.86), PETG into TPU by 2.76 mm (to x=22.76)
+
+=== B gap 0.000500 mm between blocks, defaults ===
+settings: on=1 width=0.80 orient=22.5 layers=2 depth=2 avoid=2 layer_h=0.20 | regions=2 layers=50
+RESULT: interlocking on 40 layers (layer 4..43, print_z 1.00..8.80), intruding area total 950.4 mm2
+        extent along interface y: 0.00..20.00 ; TPU reaches into PETG by 2.14 mm (to x=17.86), PETG into TPU by 2.76 mm (to x=22.76)
+
+=== B gap 0.002000 mm between blocks, defaults ===
+settings: on=1 width=0.80 orient=22.5 layers=2 depth=2 avoid=2 layer_h=0.20 | regions=2 layers=50
+RESULT: interlocking on 40 layers (layer 4..43, print_z 1.00..8.80), intruding area total 950.4 mm2
+        extent along interface y: 0.00..20.00 ; TPU reaches into PETG by 2.14 mm (to x=17.86), PETG into TPU by 2.76 mm (to x=22.76)
+
+=== B gap 0.010000 mm between blocks, defaults ===
+settings: on=1 width=0.80 orient=22.5 layers=2 depth=2 avoid=2 layer_h=0.20 | regions=2 layers=50
+RESULT: NO interlocking geometry generated.
+
+=== B gap 0.050000 mm between blocks, defaults ===
+settings: on=1 width=0.80 orient=22.5 layers=2 depth=2 avoid=2 layer_h=0.20 | regions=2 layers=50
+RESULT: NO interlocking geometry generated.
+
+=== B gap 0.05 mm, avoid=0 ===
+settings: on=1 width=0.80 orient=22.5 layers=2 depth=2 avoid=0 layer_h=0.20 | regions=2 layers=50
+RESULT: interlocking on 50 layers (layer 0..49, print_z 0.20..10.00), intruding area total 1475.0 mm2
+        extent along interface y: 0.00..20.00 ; TPU reaches into PETG by 2.12 mm (to x=17.88), PETG into TPU by 2.78 mm (to x=22.78)
+
+=== B gap 0.01 mm, avoid=1 ===
+settings: on=1 width=0.80 orient=22.5 layers=2 depth=2 avoid=1 layer_h=0.20 | regions=2 layers=50
+RESULT: interlocking on 48 layers (layer 0..47, print_z 0.20..9.60), intruding area total 491.6 mm2
+        extent along interface y: 0.00..20.00 ; TPU reaches into PETG by 2.14 mm (to x=17.86), PETG into TPU by 2.76 mm (to x=22.76)
+
+=== B overlap 0.3 mm (TPU later carves PETG), defaults ===
+settings: on=1 width=0.80 orient=22.5 layers=2 depth=2 avoid=2 layer_h=0.20 | regions=2 layers=50
+RESULT: interlocking on 40 layers (layer 4..43, print_z 1.00..8.80), intruding area total 954.9 mm2
+        extent along interface y: 0.00..20.00 ; TPU reaches into PETG by 2.10 mm (to x=17.60), PETG into TPU by 2.70 mm (to x=22.40)
+
+=== C1 coupon 12w x 3.2t, defaults ===
+settings: on=1 width=0.80 orient=22.5 layers=2 depth=2 avoid=2 layer_h=0.20 | regions=2 layers=16
+RESULT: interlocking on 8 layers (layer 4..11, print_z 1.00..2.40), intruding area total 86.5 mm2
+        extent along interface y: 0.00..12.00 ; TPU reaches into PETG by 2.04 mm (to x=17.96), PETG into TPU by 2.65 mm (to x=22.65)
+
+=== C2 coupon 12w x 3.2t, avoid=1 ===
+settings: on=1 width=0.80 orient=22.5 layers=2 depth=2 avoid=1 layer_h=0.20 | regions=2 layers=16
+RESULT: interlocking on 12 layers (layer 0..11, print_z 0.20..2.40), intruding area total 184.8 mm2
+        extent along interface y: 0.00..11.66 ; TPU reaches into PETG by 2.04 mm (to x=17.96), PETG into TPU by 2.65 mm (to x=22.65)
+
+=== C3 coupon 12w x 3.2t, avoid=0 ===
+settings: on=1 width=0.80 orient=22.5 layers=2 depth=2 avoid=0 layer_h=0.20 | regions=2 layers=16
+RESULT: interlocking on 16 layers (layer 0..15, print_z 0.20..3.20), intruding area total 274.3 mm2
+        extent along interface y: 0.00..12.00 ; TPU reaches into PETG by 2.04 mm (to x=17.96), PETG into TPU by 2.65 mm (to x=22.65)
+
+=== C4 coupon 12w x 4.8t, defaults ===
+settings: on=1 width=0.80 orient=22.5 layers=2 depth=2 avoid=2 layer_h=0.20 | regions=2 layers=24
+RESULT: interlocking on 16 layers (layer 4..19, print_z 1.00..4.00), intruding area total 173.1 mm2
+        extent along interface y: 0.00..12.00 ; TPU reaches into PETG by 2.04 mm (to x=17.96), PETG into TPU by 2.65 mm (to x=22.65)
+
+=== C5 coupon 12w x 6.4t, defaults ===
+settings: on=1 width=0.80 orient=22.5 layers=2 depth=2 avoid=2 layer_h=0.20 | regions=2 layers=32
+RESULT: interlocking on 24 layers (layer 4..27, print_z 1.00..5.60), intruding area total 259.6 mm2
+        extent along interface y: 0.00..12.00 ; TPU reaches into PETG by 2.04 mm (to x=17.96), PETG into TPU by 2.65 mm (to x=22.65)
+
+=== C6 coupon 8w x 10t, defaults ===
+settings: on=1 width=0.80 orient=22.5 layers=2 depth=2 avoid=2 layer_h=0.20 | regions=2 layers=50
+RESULT: interlocking on 40 layers (layer 4..43, print_z 1.00..8.80), intruding area total 224.2 mm2
+        extent along interface y: 0.00..6.09 ; TPU reaches into PETG by 1.78 mm (to x=18.22), PETG into TPU by 2.65 mm (to x=22.65)
+
+=== C7 coupon 6w x 10t, defaults ===
+settings: on=1 width=0.80 orient=22.5 layers=2 depth=2 avoid=2 layer_h=0.20 | regions=2 layers=50
+RESULT: interlocking on 40 layers (layer 4..43, print_z 1.00..8.80), intruding area total 102.4 mm2
+        extent along interface y: 0.00..6.00 ; TPU reaches into PETG by 1.78 mm (to x=18.22), PETG into TPU by 1.78 mm (to x=21.78)
+
+=== C8 coupon 6w x 10t, avoid=1 ===
+settings: on=1 width=0.80 orient=22.5 layers=2 depth=2 avoid=1 layer_h=0.20 | regions=2 layers=50
+RESULT: interlocking on 48 layers (layer 0..47, print_z 0.20..9.60), intruding area total 330.5 mm2
+        extent along interface y: 0.00..5.96 ; TPU reaches into PETG by 1.78 mm (to x=18.22), PETG into TPU by 2.65 mm (to x=22.65)
+
+=== E thickness 1.600000 x 12w, defaults ===
+settings: on=1 width=0.80 orient=22.5 layers=2 depth=2 avoid=2 layer_h=0.20 | regions=2 layers=8
+RESULT: NO interlocking geometry generated.
+
+=== E thickness 2.000000 x 12w, defaults ===
+settings: on=1 width=0.80 orient=22.5 layers=2 depth=2 avoid=2 layer_h=0.20 | regions=2 layers=10
+RESULT: NO interlocking geometry generated.
+
+=== E thickness 2.400000 x 12w, defaults ===
+settings: on=1 width=0.80 orient=22.5 layers=2 depth=2 avoid=2 layer_h=0.20 | regions=2 layers=12
+RESULT: interlocking on 4 layers (layer 4..7, print_z 1.00..1.60), intruding area total 43.3 mm2
+        extent along interface y: 0.00..12.00 ; TPU reaches into PETG by 2.04 mm (to x=17.96), PETG into TPU by 2.65 mm (to x=22.65)
+
+=== E width 2.000000 x 10t, defaults ===
+settings: on=1 width=0.80 orient=22.5 layers=2 depth=2 avoid=2 layer_h=0.20 | regions=2 layers=50
+RESULT: NO interlocking geometry generated.
+
+=== E width 3.000000 x 10t, defaults ===
+settings: on=1 width=0.80 orient=22.5 layers=2 depth=2 avoid=2 layer_h=0.20 | regions=2 layers=50
+RESULT: NO interlocking geometry generated.
+
+=== E width 4.000000 x 10t, defaults ===
+settings: on=1 width=0.80 orient=22.5 layers=2 depth=2 avoid=2 layer_h=0.20 | regions=2 layers=50
+RESULT: NO interlocking geometry generated.
+
+=== E width 2.000000 x 10t, avoid=1 ===
+settings: on=1 width=0.80 orient=22.5 layers=2 depth=2 avoid=1 layer_h=0.20 | regions=2 layers=50
+RESULT: NO interlocking geometry generated.
+
+=== E width 3.000000 x 10t, avoid=1 ===
+settings: on=1 width=0.80 orient=22.5 layers=2 depth=2 avoid=1 layer_h=0.20 | regions=2 layers=50
+RESULT: interlocking on 48 layers (layer 0..47, print_z 0.20..9.60), intruding area total 122.9 mm2
+        extent along interface y: 0.00..3.00 ; TPU reaches into PETG by 1.78 mm (to x=18.22), PETG into TPU by 1.78 mm (to x=21.78)
+
+=== F width 5.000000 x 10t, defaults ===
+settings: on=1 width=0.80 orient=22.5 layers=2 depth=2 avoid=2 layer_h=0.20 | regions=2 layers=50
+RESULT: NO interlocking geometry generated.
+
+=== F width 2.000000 x 10t, avoid=0 ===
+settings: on=1 width=0.80 orient=22.5 layers=2 depth=2 avoid=0 layer_h=0.20 | regions=2 layers=50
+RESULT: interlocking on 50 layers (layer 0..49, print_z 0.20..10.00), intruding area total 148.7 mm2
+        extent along interface y: 0.00..2.00 ; TPU reaches into PETG by 1.78 mm (to x=18.22), PETG into TPU by 2.15 mm (to x=22.15)
+
+=== F width 1.200000 x 10t, avoid=0 ===
+settings: on=1 width=0.80 orient=22.5 layers=2 depth=2 avoid=0 layer_h=0.20 | regions=2 layers=50
+RESULT: interlocking on 50 layers (layer 0..49, print_z 0.20..10.00), intruding area total 66.8 mm2
+        extent along interface y: 0.00..1.20 ; TPU reaches into PETG by 0.74 mm (to x=19.26), PETG into TPU by 1.78 mm (to x=21.78)
+
+=== F thickness 1.6 x 12w, avoid=1 ===
+settings: on=1 width=0.80 orient=22.5 layers=2 depth=2 avoid=1 layer_h=0.20 | regions=2 layers=8
+RESULT: interlocking on 4 layers (layer 0..3, print_z 0.20..0.80), intruding area total 61.6 mm2
+        extent along interface y: 0.00..11.66 ; TPU reaches into PETG by 2.04 mm (to x=17.96), PETG into TPU by 2.65 mm (to x=22.65)
+
+=== F thickness 0.8 x 12w, avoid=0 ===
+settings: on=1 width=0.80 orient=22.5 layers=2 depth=2 avoid=0 layer_h=0.20 | regions=2 layers=4
+RESULT: interlocking on 4 layers (layer 0..3, print_z 0.20..0.80), intruding area total 68.6 mm2
+        extent along interface y: 0.00..12.00 ; TPU reaches into PETG by 2.04 mm (to x=17.96), PETG into TPU by 2.65 mm (to x=22.65)
+
+=== D1 TPU on top of PETG (horizontal interface z=5), defaults ===
+settings: on=1 width=0.80 orient=22.5 layers=2 depth=2 avoid=2 layer_h=0.20 | regions=2 layers=50
+RESULT: interlocking on 8 layers (layer 20..27, print_z 4.20..5.60), intruding area total 1024.0 mm2
+        xy extent of intruding material: x 1.13..19.48, y 1.13..18.87
+
+=== D2 horizontal interface, depth=4 ===
+settings: on=1 width=0.80 orient=22.5 layers=2 depth=4 avoid=2 layer_h=0.20 | regions=2 layers=50
+RESULT: interlocking on 16 layers (layer 16..31, print_z 3.40..6.40), intruding area total 2048.0 mm2
+        xy extent of intruding material: x 1.13..19.48, y 1.13..18.87
+
+=== D3 horizontal, TPU pad 2.0 mm thick on PETG, defaults ===
+settings: on=1 width=0.80 orient=22.5 layers=2 depth=2 avoid=2 layer_h=0.20 | regions=2 layers=35
+RESULT: interlocking on 8 layers (layer 20..27, print_z 4.20..5.60), intruding area total 1024.0 mm2
+        xy extent of intruding material: x 1.13..19.48, y 1.13..18.87
+
+=== D4 horizontal, TPU pad 2.0 mm thick on PETG, avoid=1 ===
+settings: on=1 width=0.80 orient=22.5 layers=2 depth=2 avoid=1 layer_h=0.20 | regions=2 layers=35
+RESULT: interlocking on 8 layers (layer 20..27, print_z 4.20..5.60), intruding area total 1269.8 mm2
+        xy extent of intruding material: x 0.16..19.84, y 0.16..19.84

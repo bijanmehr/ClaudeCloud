@@ -37,9 +37,10 @@ part. Otherwise the test tells you about a different joint.
     icon.
   - If you add the file to a plate that already has objects, choose **Open as
     project**. *Import geometry only* drops those object settings.
-  - To switch interlocking on by hand: right-click the object > *Add
-    settings* > *Others* > tick *Use beam interlocking*, then set the three
-    values above.
+  - To switch interlocking on by hand: right-click the object > *Edit
+    Process Settings*, turn on the *Advanced* switch at the top of the
+    process panel, open *Others*, tick *Use beam interlocking*, then set the
+    three values above.
 - **STLs instead:** select `print/bond_tests_PETG.stl` and `print/bond_tests_TPU.stl`
   together, import them in one go and answer **Yes** to *"Load these files as
   a single object with multiple parts?"*. Then set the TPU part to filament 2.
@@ -53,7 +54,9 @@ Why boundary avoidance is set to 0: Bambu Studio keeps the interlocking beams
 a number of grid cells away from every outer surface, in all three
 directions. This was measured by running Bambu Studio's own slicing code. At
 the default of 2:
-- joints narrower than about 6 mm or shorter than about 2.4 mm get no beams;
+- joints shorter than about 2.4 mm get no beams, and joints narrower than
+  about 5 mm get none or only some, depending on where the joint falls on the
+  slicer's grid;
 - these 3.2 mm thick coupons would get beams in only 8 of their 16 layers;
 - the outer 1 to 2.5 mm rim of every joint is never interlocked, and that rim
   is exactly where a peel starts.
