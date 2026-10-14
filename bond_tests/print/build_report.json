@@ -1,0 +1,84 @@
+{
+ "A": {
+  "description": "butt joint",
+  "ok": true,
+  "petg_bodies": 2,
+  "overlap_mm3": 0.0,
+  "petg_cm3": 1.95,
+  "tpu_cm3": 1.7
+ },
+ "B": {
+  "description": "butt joint + beam interlocking",
+  "ok": true,
+  "petg_bodies": 2,
+  "overlap_mm3": 0.0,
+  "petg_cm3": 1.94,
+  "tpu_cm3": 1.7
+ },
+ "C": {
+  "description": "lap joint (TPU on top of PETG)",
+  "ok": true,
+  "petg_bodies": 2,
+  "overlap_mm3": 0.0,
+  "petg_cm3": 2.33,
+  "tpu_cm3": 1.32
+ },
+ "D": {
+  "description": "large dovetail",
+  "ok": true,
+  "petg_bodies": 2,
+  "overlap_mm3": 0.0,
+  "petg_cm3": 2.23,
+  "tpu_cm3": 1.41
+ },
+ "E": {
+  "description": "three small dovetails",
+  "ok": true,
+  "petg_bodies": 2,
+  "overlap_mm3": 0.0,
+  "petg_cm3": 2.19,
+  "tpu_cm3": 1.46
+ },
+ "F": {
+  "description": "encapsulated T-anchor",
+  "ok": true,
+  "petg_bodies": 2,
+  "overlap_mm3": 0.0,
+  "petg_cm3": 2.14,
+  "tpu_cm3": 1.52
+ },
+ "G": {
+  "description": "riveted tongue",
+  "ok": true,
+  "petg_bodies": 2,
+  "overlap_mm3": 0.0,
+  "petg_cm3": 2.13,
+  "tpu_cm3": 1.51
+ },
+ "H": {
+  "description": "encapsulated T-anchor + beam interlocking",
+  "ok": true,
+  "petg_bodies": 2,
+  "overlap_mm3": 0.0,
+  "petg_cm3": 2.13,
+  "tpu_cm3": 1.52
+ },
+ "P": {
+  "description": "peel strip",
+  "ok": true,
+  "petg_bodies": 1,
+  "overlap_mm3": 0.0,
+  "petg_cm3": 1.14,
+  "tpu_cm3": 1.44
+ },
+ "slice_test": {
+  "time": "7h 57m 3s",
+  "layers": 18,
+  "tool_changes": 19,
+  "filament_mm": "13760.81, 9547.02",
+  "warnings": [
+   "65 => Searching support spots",
+   "89 => Calculating overhanging perimeters"
+  ]
+ }
+}
