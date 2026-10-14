@@ -72,10 +72,10 @@
   "tpu_cm3": 1.44
  },
  "slice_test": {
-  "time": "7h 57m 3s",
+  "time": "7h 57m 5s",
   "layers": 18,
   "tool_changes": 19,
-  "filament_mm": "13760.81, 9547.02",
+  "filament_mm": "13761.63, 9545.15",
   "warnings": [
    "65 => Searching support spots",
    "89 => Calculating overhanging perimeters"

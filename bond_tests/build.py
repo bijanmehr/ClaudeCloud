@@ -37,10 +37,13 @@ TYPES = {
     "H": "encapsulated T-anchor + beam interlocking",
     "P": "peel strip",
 }
-# Bambu's interlocking keeps clear of outer surfaces by `boundary_avoidance` cells in 3D
-# (default 2 cells = 1.6 mm at default settings), which would leave nothing in a 3.2 mm
-# thick coupon, so it is set to 0 here.
-INTERLOCK = {"interlocking_beam": 1, "interlocking_boundary_avoidance": 0}
+# Bambu's interlocking keeps clear of outer surfaces by `boundary_avoidance` cells (all
+# three directions). Measured with Bambu Studio's slicing code: at the default of 2 these
+# 3.2 mm coupons would get beams in only 8 of their 16 layers, and joints under about
+# 6 mm wide / 2.4 mm tall get none, so it is 0 here. 45 deg makes both beam directions
+# cross the joint faces (they lie along Y); depth 3 reaches about 3 mm into each side.
+INTERLOCK = {"interlocking_beam": 1, "interlocking_boundary_avoidance": 0,
+             "interlocking_orientation": 45, "interlocking_depth": 3}
 COLS_X = (100.0, 245.0)        # coupon centres, inside the area both H2D nozzles reach
 ROW_Y0, ROW_PITCH = 70.0, 20.0
 

@@ -32,13 +32,14 @@ part. Otherwise the test tells you about a different joint.
   plate). Every coupon is its own object, with the PETG part on filament 1 and
   the TPU part on filament 2.
   - B1, B2, H1 and H2 already have *Use beam interlocking* switched on, with
-    *Interlocking boundary avoidance* set to 0. Their rows in the Objects
-    list show a settings icon.
+    *Interlocking direction* 45, *Interlocking depth* 3 and *Interlocking
+    boundary avoidance* 0. Their rows in the Objects list show a settings
+    icon.
   - If you add the file to a plate that already has objects, choose **Open as
     project**. *Import geometry only* drops those object settings.
   - To switch interlocking on by hand: right-click the object > *Add
-    settings* > *Others* > tick *Use beam interlocking* and set *Interlocking
-    boundary avoidance* to 0.
+    settings* > *Others* > tick *Use beam interlocking*, then set the three
+    values above.
 - **STLs instead:** select `print/bond_tests_PETG.stl` and `print/bond_tests_TPU.stl`
   together, import them in one go and answer **Yes** to *"Load these files as
   a single object with multiple parts?"*. Then set the TPU part to filament 2.
@@ -49,10 +50,13 @@ part. Otherwise the test tells you about a different joint.
 - Layer height 0.2 mm. The coupons are 16 layers thick.
 
 Why boundary avoidance is set to 0: Bambu Studio keeps the interlocking beams
-away from every outer surface by this many cells, in all three directions.
-At the default value of 2, that is 1.6 mm from the top and from the bottom, so
-a part thinner than about 3.2 mm gets **no interlocking at all**. This comes
-from Bambu Studio's source, `src/libslic3r/Interlocking/InterlockingGenerator.cpp`.
+a number of grid cells away from every outer surface, in all three
+directions. This was measured by running Bambu Studio's own slicing code. At
+the default of 2:
+- joints narrower than about 6 mm or shorter than about 2.4 mm get no beams;
+- these 3.2 mm thick coupons would get beams in only 8 of their 16 layers;
+- the outer 1 to 2.5 mm rim of every joint is never interlocked, and that rim
+  is exactly where a peel starts.
 
 ## Testing
 
