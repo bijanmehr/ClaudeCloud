@@ -27,7 +27,9 @@ thick, so the print is short; Bambu Studio shows the exact time.
 Print with the **same filaments and settings you plan to use** for the real
 part. Otherwise the test tells you about a different joint.
 
-- **Bambu Studio:** start with an empty plate and open
+- **Bambu Studio:** first make sure that the Filament list has two filaments
+  (1 = PETG, 2 = TPU 95A; use the + button to add one), otherwise the TPU parts
+  silently print in PETG. Then start with an empty plate and open
   `print/bond_tests_BambuStudio_H2D.3mf` (File > Open, or drag it onto the
   plate). Every coupon is its own object, with the PETG part on filament 1 and
   the TPU part on filament 2.

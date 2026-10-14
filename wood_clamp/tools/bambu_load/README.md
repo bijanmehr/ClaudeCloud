@@ -78,7 +78,11 @@ for 3MF projects saved by Bambu Studio itself.
 `PrintObject::slice()` (the same code as the slicer, including
 `InterlockingGenerator`) and reports where the interlocking beams go: on which
 layers, and how far each material reaches into the other. All the
-interlocking numbers in the READMEs and notes came from it.
+interlocking numbers in the READMEs and notes came from it or from small
+variants of it. `ilk_probe all` gives the built-in cases. The rim widths and
+the check that no beam crosses a gap came from its `ILK_DUMP` geometry output.
+The grid-position sweep for narrow joints and the gap between a top and a
+bottom face came from extra cases that are not built in.
 
 ```
 python3 build_ilk_probe.py /path/to/BambuStudio/build   # after bbs_load is built
@@ -95,6 +99,8 @@ ilk_probe --3mf file.3mf [name]   # a real 3MF, with its own object settings
     or about 5 mm wide get no beams, and the outer 1 to 2.5 mm of every joint
     gets none;
   - a gap of 0.01 mm between the two bodies stops all interlocking (the gap
-    tolerance is compared in the wrong unit);
+    tolerance is compared in the wrong unit): no beam crosses the gap. Where
+    the file still reports "interlocking" with a gap (boundary avoidance 0 or
+    1), `ILK_DUMP` shows only material swapped on each side of it;
   - with overlapping bodies, the later part keeps its full shape and carves
     the earlier one.
