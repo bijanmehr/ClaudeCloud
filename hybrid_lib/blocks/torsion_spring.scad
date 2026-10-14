@@ -1,5 +1,167 @@
 include <../params.scad>
-// torsion_spring (header written after FEA calibration)
+// =======================================================================
+// torsion_spring: Rosta-style rubber torsion unit with TPU cords in compression
+// =======================================================================
+// WHAT IT IS FOR
+//   A compact rotary spring that is also a bushing, printed in one go: an
+//   outer PETG square tube, an inner PETG square shaft turned 45 deg inside
+//   it, and four TPU cords in the four corner pockets between them. Twist the
+//   shaft and its faces squeeze and drag the cords against the tube walls;
+//   let go and it springs back to centre. No pins, no metal spring, nothing
+//   to assemble, some damping from the TPU, and it also carries radial load.
+//   On rovers and drones: swing-arm / rocker / bogie suspension pivots,
+//   landing-gear legs that fold back on touchdown, spring-centred steering or
+//   camera tilt, pivoting bumpers and tail skids, compliant leg and gripper
+//   joints, belt / track tensioners.
+//
+// HOW IT WORKS (every PETG/TPU joint holds by shape, never by adhesion)
+//
+//   section at mid-height (images/torsion_spring_slice.png):
+//        +-------------------------------+   tube (PETG)
+//        | TTTTTTTT :   :   : TTTTTTTT   |   T = TPU cord, one per tube corner
+//        | TT  o  TT:   /\  :TT  o  TT   |   o = hollow core (core_d)
+//        | TTTTTTTTT:  /  \ :TTTTTTTTT   |   : = air strip at each shaft corner
+//        |         : /shaft\ :           |       (2 x relief wide), split by a
+//        |-|       :<  PETG  >:       |-|       short PETG rib (-|) on the wall
+//        |         : \      / :          |   the shaft is the square turned
+//        | TTTTTTTTT:  \  / :TTTTTTTTT   |   45 deg; its corners point at the
+//        | TT  o  TT:   \/  :TT  o  TT   |   middle of the tube walls
+//        | TTTTTTTT :   :   : TTTTTTTT   |
+//        +-------------------------------+
+//   section through the axis and two tube corners (images/torsion_spring_section.png):
+//                    |  drive  |              square drive (the shaft itself)
+//        +-----------+         +-----------+  z = length
+//        | top lip   |         |   top lip |  flat ring printed ON the cords
+//        |  TTTT     |  shaft  |     TTTT  |
+//        |  T  T     |  (PETG, |     T  T  |  cords (TPU), hollow core
+//        |  TTTT    /|  bore)  |\    TTTT  |
+//        | bottom  / |         | \  bottom |  bottom lip: a waist the shaft
+//        |  lip   <  |  neck   |  >   lip  |  hooks over (45 deg cone) and
+//        |         \ |         | /         |  under (its foot, 45 deg cone)
+//   =====+==========\|__foot___|/==========+=====  flange on the bed, z = 0
+//
+//   - The cords: in the cross-section each cord is boxed in by two tube
+//     walls and a shaft face (a triangle-like pocket: no in-plane direction
+//     is free); along the axis the bottom lip is under it and the top lip is
+//     printed on top of it. tools/capture_check.py confirms none of the four
+//     cords can slide out in any of 26 directions with zero adhesion.
+//   - The shaft is a separate PETG body that touches only TPU. At the bottom
+//     it narrows to a round neck through a round hole in the bottom lip and
+//     widens again below it into a foot on the bed: the lip sits in that
+//     waist (0.6 mm vertical, >= 0.4 mm side clearance, 45 deg cones on both
+//     sides), so the shaft cannot move up or down more than 0.6 mm. All the
+//     clearances are solids of revolution, so they are the same at every
+//     twist angle (without the cords the shaft would spin freely).
+//   - The top lip only covers the cords; its hole (corner radius + 0.4)
+//     lets the full square shaft out of the top as a square drive: the
+//     strongest torque path out of the unit. The hex bore runs all through
+//     (a 1/4" hex shaft or bit, or a bolt).
+//   - When the shaft turns by theta, each face (a) rocks about its middle,
+//     squeezing its cord on one side and lifting off on the other, and (b)
+//     slides by theta * h along the cord, dragging it (TPU on PETG has high
+//     friction). Both are resisted by the TPU between the face and the tube
+//     corner. Past ~asin(relief / corner radius) (23 deg at the defaults)
+//     the shaft corners also start to press into the cord tips, so the
+//     spring gets progressively stiffer towards the design twist (a soft
+//     bump stop). The air strips and the hollow cores give the nearly
+//     incompressible TPU room to move; filled pockets would be ~7x stiffer.
+//
+// PRINTING (Bambu Lab H2D: PETG left nozzle, TPU 95A right; no supports)
+//   As modelled, flange on the bed. Shaft foot and bottom lip start on the
+//   bed; the shaft's cones overhang 45 deg over the lip with 0.6 mm air; the
+//   cords start on the bottom lip; the top lip is printed on the cords (PETG
+//   on TPU) and bridges <= 1.9 mm over the air strips (thanks to the ribs)
+//   and the cores. Print the TPU solid (100 % infill, or >= 4 walls) for the
+//   stiffness below; lower TPU infill makes it softer and less predictable.
+//   Break the shaft free after printing by twisting it +-30 deg a few times.
+//
+// PARAMETERS (mm, degrees; defaults and the rule behind each)
+//   size     = 24    tube outside width (square). Everything scales from it.
+//   length   = 20    tube length along the axis (Z), not counting the drive.
+//                    Torque grows with the cord length Lc = length - z_lb -
+//                    lip_t (13.25 at the defaults); needs Lc >= 4.
+//   wall     = 2.8   tube wall (>= 1.2). Sized so the walls, bent by the cord
+//                    pressure, stay below ~20 MPa at 2 N*m (see ESTIMATES).
+//   shaft    = auto  shaft square side across flats (11.62 at the defaults).
+//                    Rule: the shaft corners, twisted by `twist`, would
+//                    squeeze a cord filling the pocket by at most `strain`:
+//                    corner-tip radius c_tip = (eps (a - rho) + rho) /
+//                    (sin t + cos t - 1 + eps (1 - sin t)), a = size/2 - wall,
+//                    rho = 0.414 corner_r, t = twist, eps = strain.
+//   twist    = 30    design twist each way (used by the shaft rule).
+//   strain   = 0.5   allowed nominal compression under a shaft corner at
+//                    `twist` (TPU 95A takes 50 % locally, repeatedly).
+//   corner_r = 1.0   shaft corner rounding (blunt corners do not cut TPU).
+//   cav_r    = 1.5   tube cavity corner rounding.
+//   relief   = 3.0   half-width of the air strip at each shaft corner. The
+//                    cords touch the shaft faces only over +-s1 = h -
+//                    1.414 relief around each face middle (h = shaft/2):
+//                    the main stiffness knob (bigger = softer, later bump
+//                    stop). Needs s1 >= 0.5; >= 1.5 adds the PETG ribs.
+//   core_d   = 3.0   hollow core in each cord (0 = solid): second stiffness
+//                    knob (~0.45x at 3.0). TPU round it >= 1.2.
+//   bore     = 6.5,  bore_shape = "hex": through bore. 6.5 hex = 1/4" hex
+//                    shaft or screwdriver bit; 5.6 hex = M3 nut / M3 hex
+//                    standoff; "square"; "round" (3.4 = M3 bolt). Needs
+//                    >= 1.2 of PETG round it in the shaft and in the neck.
+//   drive_h  = 4     how far the square shaft sticks out of the top as the
+//                    drive for your arm (square socket, +0.2 mm per side).
+//                    0 = flush.
+//   lip_t    = 1.6   top lip thickness (8 layers).
+//   rim      = 1.2   bottom lip thickness at its hole (>= min_petg).
+//   flange_w = 7, flange_t = 3, hole_d = 3.4: square mounting flange round
+//                    the tube base, 4 holes on a (size + flange_w) square
+//                    (M3 on 31 mm at the defaults). flange_w = 0: no flange.
+//   Derived (echoed): neck radius R_n = bore circumradius + 1.5, foot radius
+//   R_f = R_n + 1.6, bottom lip / cord bottom z_lb = 5.15, cord top
+//   z_lt = length - lip_t.
+//
+// ESTIMATES (TPU 95A E ~ 26 MPa, G ~ 9 MPa; PETG E ~ 2000 MPa, ~45 MPa)
+//@@ESTIMATES@@
+//
+// TEST PIECE (show = "test"): torsion_spring_test() - the default unit with
+//   a +-40 deg angle scale on its flange (ticks every 5 deg) and a loose
+//   lever printed beside it. Turn the lever over and push its square pocket
+//   onto the drive (it sits 1 mm clear of the tube top; a 1/4" hex bit
+//   through lever and shaft takes the torque off the drive if you want).
+//   Screw the flange down with the axis vertical, pull the lever's 50 mm
+//   hole sideways with a luggage scale or spring scale held at right angles
+//   to the lever, and note the force at 5, 10, 20, 30 deg both ways, then
+//   on the way back (hysteresis), and the angle it returns to (set).
+//   Torque [N*mm] = force [N] x 50. Compare with the table above; the ratio
+//   tells you your TPU / friction factor for torsion_spring_k().
+//
+// MODULES (all take `part` = "petg" | "tpu" | "both" first)
+//   torsion_spring(part, size, length, wall, shaft, twist, strain, corner_r,
+//       cav_r, relief, core_d, bore, bore_shape, drive_h, lip_t, rim,
+//       flange_w, flange_t, hole_d) { your PETG }
+//       the unit with its flange; children() are fused to the PETG tube.
+//   torsion_spring_unit(part, size, length, ... same, no flange ...) { your PETG }
+//       the unit alone (tube outside = size square, z = 0 .. length) - build
+//       it into your own bracket, chassis wall or arm: union your PETG with
+//       the tube's outside as children().
+//   torsion_spring_test(part, size, length, wall, shaft, relief, core_d,
+//       drive_h, flange_w, flange_t)   the test piece above.
+//   Functions: torsion_spring_k(size, length, wall, shaft, relief, core_d)
+//       initial stiffness (N*mm per deg); torsion_spring_torque(deg, ...)
+//       estimated torque (N*mm) including the progressive rise;
+//       torsion_spring_geom(...) all derived sizes (read with ts_v(g, key)).
+//
+// RULES FOR YOUR OWN PARTS
+//   - Fuse PETG only to the outside of the tube (|x| or |y| >= size/2 - wall)
+//     and keep it out of the region above the top lip within the drive's
+//     swept circle (radius c_tip + 0.4, 8.2 at the defaults).
+//   - Your arm/lever goes on the square drive (socket = shaft + 0.4, corner
+//     radius corner_r + 0.2) and must stay >= 0.6 mm clear of the tube top
+//     (a socket depth of drive_h - 1 does that), or put a washer between.
+//   - Clamp the arm axially with a bolt through the bore + washer under the
+//     foot, if it must not pull off; the shaft takes ~300 N axially.
+//   - Limit the swing with your own stop at about +-30 deg; past that the
+//     TPU strain and the PETG stresses climb fast.
+//
+// LIMITATIONS
+//@@LIMITS@@
+// =======================================================================
 
 part = "both";   // [petg, tpu, both]
 show = "demo";   // [demo, test, section]
