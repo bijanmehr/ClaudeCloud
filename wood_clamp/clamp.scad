@@ -512,7 +512,7 @@ else if (part == "earA_closed") linear_extrude(clamp_h) earA_2d();
 else if (part == "bgroup_closed") { linear_extrude(clamp_h) arm_2d(); knuckle_layers() knuckle_2d(); linear_extrude(clamp_h) pin_2d(); pin_fillets(); }
 else if (part == "ring_closed") linear_extrude(clamp_h) ring_2d(0);
 else if (part == "ring_open") linear_extrude(clamp_h) ring_2d(1);
-else if (part == "ring_at") linear_extrude(clamp_h) ring_2d(lever_open);
+else if (part == "ring_at") { linear_extrude(clamp_h) ring_2d(lever_open); lock_3d(lever_open); }   // videos
 echo(str("GEOM ", "{\"P\":[", P[0], ",", P[1], "],\"a0\":", a0, ",\"a0o\":", a0o, ",\"open_dr\":", open_dr,
          ",\"open_angle\":", open_angle, ",\"cam_e\":", cam_e, ",\"cam_r\":", cam_r, ",\"lobe\":", lobe,
          ",\"shell_r\":", shell_r, ",\"tip_r\":", tip_r, ",\"cam_band_h\":", cam_band_h, ",\"draw\":", draw_of(cam_e), ",\"fit_gap\":", fit_gap, ",\"shell_wall\":", shell_wall, ",\"pin_hole_r\":", pin_hole_r, "}"));
