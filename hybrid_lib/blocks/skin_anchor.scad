@@ -81,11 +81,14 @@ include <../params.scad>
 //   skin_t    2.0       TPU thickness under the lip (pocket depth, face to
 //                       lip). Rule: >= rib_h + 0.6 (3 TPU layers over the
 //                       ribs) and >= min_tpu.
-//   lip_t     1.2       lip thickness = min_petg (6 layers). Thinner lips
-//                       bend open (strength ~ lip_t^2, see below).
+//   lip_t     1.2       lip thickness = min_petg (6 layers). Lip strength
+//                       goes with lip_t^2 (see estimate below).
 //   lip_w     1.6       how far the lip reaches over the TPU edge (4 lines).
-//                       More = better capture, less exposed TPU.
-//   rim_w     2.0       PETG rim wall width, >= min_petg (5 lines).
+//                       More = harder to squeeze the TPU out, but the lip
+//                       bends open more easily (strength ~ 1 / lip_w) and
+//                       less TPU shows.
+//   rim_w     2.0       PETG rim wall width, >= min_petg (5 lines). It also
+//                       carries the lip load down to the face across layers.
 //   proud     1.0       TPU standing above the rim top (the contact face).
 //                       0 = skin flush with the rim. >= 0.6 if used.
 //   ch        0.6       45 deg chamfer on the top edge of the proud TPU, so
@@ -96,57 +99,90 @@ include <../params.scad>
 //   rib_neck  anchor_neck (1.3)    rib width at the face (>= min_petg).
 //   rib_head  anchor_head (2.3)    rib width at the top. Flank overhang
 //                       atan((head - neck) / 2 / rib_h) = 23 deg (<= 45).
-//   rib_pitch 4.0       rib row spacing (along y). Rule: pitch - head >=
+//   rib_pitch 4.0       spacing of the rib rows. Rule: pitch - head >=
 //                       min_tpu, so the TPU key between heads is >= 3 lines
 //                       (default 1.7 mm); the key is 2.7 mm wide at the face.
-//   seg_l     5.0       rib segment length (along x).
+//   seg_l     5.0       rib segment length along the rib (>= 2).
 //   rib_gap   1.6       TPU gap between segments (>= anchor_gap_z = 1.2;
 //                       1.6 gives each TPU post 4 lines). Odd rows are
 //                       shifted half a period (brick pattern).
 //   rib_inset 2.0       clear TPU between the pocket wall and the ribs
 //                       (>= min_tpu; about lip_w, so ribs begin where the
 //                       lip stops and the flange under the lip stays skin_t).
+//                       Each row is cut short where the pocket corners round
+//                       off, so rib ends stay square (no thin wedges).
 //   ribs      true      false = rim + lip only (tiny pads, thin strips).
+//   rib_dir   "auto"    direction the ribs run: "x", "y", or "auto" = along
+//                       the longer side of the pad (long segments; a narrow
+//                       pad with ribs across it gets only short stubs).
 //   skin_pad only:  margin 0 (scalar or [x, y]) extra plate outside the rim;
-//                   holes [] list of [x, y] hole centres (must lie in the
-//                   margin, not under the pad); hole_d 3.4 (M3 clearance).
+//                   holes [] list of [x, y] hole centres; each must sit in
+//                   the margin, clear of the rim and >= min_petg from the
+//                   plate edge (asserted: a hole that touches the rim would
+//                   undercut it and leave the rim bridging over the hole);
+//                   hole_d 3.4 (M3 clearance). The pad (rim + proud TPU,
+//                   4.2 mm) stands taller than an M3 head, so a foot can
+//                   be screwed on through the margin.
 //   coupon only:    grip_l 15 (plate before the pad, holds the 6 mm hole),
 //                   tab_t 1.6 and tab_w = size.y (as coupon P), tail_l 40,
 //                   tab_overlap 8 (tab fused onto the pad top), tab_wall 2
 //                   (TPU wall down the plate end), hole_d 6.
 //
-// STIFFNESS / STRENGTH ESTIMATE (defaults, 40 x 20 pad)
+// STIFFNESS / STRENGTH ESTIMATE (defaults, 40 x 20 pad; hand formulas)
 //   TPU 95A: E ~ 26 MPa, G ~ 9 MPa; printed tensile strength assumed
-//   ~20 MPa (conservative). PETG: E ~ 2000 MPa, ~45 MPa strength.
+//   ~ 20 MPa (conservative). PETG: E ~ 2000 MPa, ~ 45 MPa along the
+//   extrusion lines; ~ 30 MPa assumed ACROSS lines or layers.
 //   Contact area A = lip opening ~ 36.8 x 16.8 ~ 615 mm^2;
 //   TPU above the rib tops t = skin_t - rib_h + lip_t + proud = 3.0 mm.
-//   * Shear (foot pushed sideways): k_s = G A / t = 9 * 615 / 3.0
-//     ~ 1.8 kN/mm -> 10 N sideways moves the face ~ 5 um.
+//   * Shear (foot pushed sideways): with no adhesion the TPU above the rib
+//     tops shears: k_s = G A / t = 9 * 615 / 3.0 ~ 1.8 kN/mm
+//     -> 10 N sideways moves the face ~ 5 um.
 //   * Compression: k_c >= E A / t_total = 26 * 615 / 4.2 ~ 3.8 kN/mm (lower
 //     bound; the pocket confines the TPU, so the real value is higher).
 //     => the pad is for GRIP and impact/scuff protection, not suspension
 //     travel. Use a TPU spring block for compliance.
-//   * Lip (PETG cantilever, bent within each layer, so no layer-bond
-//     weakness): per mm of edge  F' = sigma_PETG * lip_t^2 / (3 lip_w)
-//     = 45 * 1.44 / 4.8 ~ 13 N/mm before it yields -> ~160 N on the 12 mm
-//     coupon edge, ~1.6 kN round the 40 x 20 pad.
-//   * Rib keys (TPU): to lift the skin the TPU key between two rib heads
-//     must tear at its narrow top: F' ~ sigma_TPU * (pitch - head)
-//     = 20 * 1.7 ~ 34 N per mm of rib row.
-//   * The TPU itself is the weak link: the coupon's 12 x 1.6 mm tail
-//     breaks at ~ 20 * 19 ~ 380 N and stretches a lot well before that.
-//     Coupon P measures the bonded-only peel of the same 12 mm strip (the
-//     owner found that bond unreliable); this coupon should hold far more,
-//     and ideally fail by stretching/tearing the tail, not at the anchor.
-//   These are rigid-body/hand estimates: soft TPU can still squeeze out
-//   from under a lip if pulled hard enough. Measure with the coupon.
+//   * Lip + rim (the edge hold, and the weakest part). Lifting the pad presses
+//     the TPU flange up under the lip; in a peel the push sits near the lip
+//     tip. The lip is a PETG cantilever whose bending stress runs across the
+//     extrusion lines of each layer (sigma ~ 30 MPa):
+//       load at the tip:  F' = sigma lip_t^2 / (6 lip_w) = 30*1.44/9.6 ~ 4.5 N/mm
+//       load spread out:  F' = sigma lip_t^2 / (3 lip_w)                ~ 9 N/mm
+//     The rim wall takes that force and its moment down to the face ACROSS
+//     layers: sigma = F'/rim_w + 6 F' (rim_w/2 + lip_w)/rim_w^2 = 4.4 F'
+//     -> F' ~ 30 / 4.4 ~ 7 N/mm, so lip and rim are matched. The TPU flange
+//     (2 mm thick) squeezing out round the lip tip needs about the same
+//     (it has to bend ~90 deg round a ~1 mm radius, ~ 100 % strain).
+//     => an edge lets go at ~ 5 - 9 N per mm of edge: ~ 55 - 110 N on the
+//     coupon's 12 mm end, ~ 160 - 330 N along one long side of the default
+//     pad. Raising lip_t to 1.6 helps the lip (x 1.8) only if rim_w goes up
+//     too (rim_w 2.4: x 1.3).
+//   * Impact on the pad: the confined TPU pressurises the pocket, p ~ F / A,
+//     and pushes the lip up with p * lip_w per mm. With the spread-out limit
+//     of ~ 9 N/mm: p ~ 5.6 MPa, i.e. ~ 3.4 kN on the default pad.
+//   * Rib keys (the main hold in the middle). To lift the skin, the TPU key
+//     between two rib heads must tear at its narrow top, F' ~ sigma_TPU *
+//     (pitch - head) = 20 * 1.7 ~ 34 N/mm of row, or be squeezed from 2.7 to
+//     1.7 mm (37 % strain) to pop out past the 23 deg flanks: a wedge
+//     estimate with mu ~ 0.3 gives ~ 30 N/mm. With the gaps
+//     (seg_l / (seg_l + rib_gap) = 0.76): ~ 25 N per mm of row. The PETG
+//     rib neck, pulled across layers, carries ~ 30 * 1.3 ~ 39 N/mm.
+//     So the ribs hold ~ 4x more per mm than the edge: a peel that beats the
+//     lip edge should stall at the first rib row, ~ 3 mm in.
+//   * Coupon tail: 12 x 1.6 mm TPU at 20 MPa ~ 380 N, and it stretches a
+//     lot before that. Expect the pad's far edge to let go first (~ 55 -
+//     110 N, by the lip bending up or the flange squeezing out), then the
+//     ribs to hold. Coupon P measures the bonded-only peel of the same
+//     12 mm strip, which the owner found unreliable.
+//   These are hand estimates: the TPU deforms a lot, so measure with the
+//   coupon before you rely on a number.
 //
 // RECOMMENDED USES
 //   Rover: feet / skid pads under the chassis, bumper faces on the nose and
 //   corners, anti-slip lining in battery or payload trays, gripper pads.
 //   Drone: landing-gear foot pads, belly skid plate, arm-tip bumpers, soft
 //   battery-strap seats. Make the face whose pad you want point UP (+z) in
-//   the print orientation.
+//   the print orientation. Run the ribs across the main peel direction
+//   when you can: then a peel crosses each rib row in turn.
 //
 // PRINTING / RULES THIS BLOCK FOLLOWS
 //   No supports. The lip's first layer is printed on the TPU (it sticks
@@ -155,16 +191,26 @@ include <../params.scad>
 //   the rim top holds both materials -> about one nozzle change per layer
 //   (the slicer alternates the order) over (skin_t + lip_t) / 0.2 = 16
 //   layers with the defaults (PrusaSlicer test: 19 changes for the demo).
+//   Slicer: print the TPU pad with 100 % infill (or enough walls to fill
+//   it). The keys between the ribs and the flange under the lip must be
+//   solid TPU, because sparse infill there lets an elastomer pull out easily.
+//   With "interface shells" off (the PrusaSlicer / Bambu Studio default),
+//   TPU printed on PETG is not a bottom surface, so the slicer would not
+//   make those layers solid by itself. PETG: >= 3 walls, so the rim and lip
+//   are solid.
 //
 // LIMITATIONS
 //   * Flat, rounded-rectangle pads on an upward-facing (+z) face only. Pads
 //     on side walls or on the bed-facing side need a different anchor
 //     (a lip there would be a PETG overhang without TPU under it).
-//   * Ribs run along x only; rotate the pad if the main load runs along y.
+//   * Ribs are straight rows along x or y (rib_dir); there is no rib grid.
 //   * The rim stands rim_w around and skin_t + lip_t above the face; the
 //     usable TPU face is the lip opening, size - 2 * lip_w.
-//   * Rigid capture is checked, not soft pull-out; a hard enough peel can
-//     still stretch the TPU out of a small pad. Test with the coupon.
+//   * The checker tests rigid capture only, not soft pull-out. The edge
+//     (lip) hold is modest (~ 5 - 9 N/mm, see above): a hard peel can lift
+//     the outer ~ 3 mm before the ribs take over. Test with the coupon.
+//   * skin_pad checks that holes are clear of the rim and the straight plate
+//     edges, but not the rounded plate corners.
 //   * Thin pads (skin_t < rib_h + 0.6) are refused: use ribs = false.
 // =======================================================================
 
@@ -184,11 +230,20 @@ module _skin_pocket_2d(size, r) _skin_rrect(size, r);
 module _skin_opening_2d(size, lip_w, r) _skin_rrect(size - [2, 2] * lip_w, max(r - lip_w, 0));
 module _skin_outer_2d(size, rim_w, r) _skin_rrect(size + [2, 2] * rim_w, r + rim_w);
 
-// rib rows (y positions), centred, inside the pocket by rib_inset
-function _skin_rows(size, rib_inset, rib_head, rib_pitch) =
-    let(span = size[1] - 2 * rib_inset - rib_head,
+// rib rows (y positions), centred, heads kept inside the pocket by rib_inset
+// (sz = pocket size in the rib frame: ribs run along sz.x)
+function _skin_rows(sz, rib_inset, rib_head, rib_pitch) =
+    let(span = sz[1] - 2 * rib_inset - rib_head,
         n = span < 0 ? 0 : floor(span / rib_pitch + 1e-6) + 1)
     n == 0 ? [] : [for (j = [0 : n - 1]) (j - (n - 1) / 2) * rib_pitch];
+
+// half-length available to a row whose head edge is at |y| = yy, inside the
+// pocket inset by rib_inset (its corners are rounded r - rib_inset), so the
+// rib ends stay square instead of being shaved into thin wedges at corners
+function _skin_row_xl(sz, r, rib_inset, yy) =
+    let(X = sz[0] / 2 - rib_inset, Y = sz[1] / 2 - rib_inset, rc = max(r - rib_inset, 0),
+        d = yy - (Y - rc))
+    d <= 0 ? X : X - rc + sqrt(max(rc * rc - d * d, 0));
 
 // rib segments [x0, x1] of one row; o = stagger offset; pieces < 2 mm dropped
 function _skin_segs(xl, seg_l, gap, o) =
@@ -197,13 +252,17 @@ function _skin_segs(xl, seg_l, gap, o) =
         let(c = o + k * P, a = max(c - seg_l / 2, -xl), b = min(c + seg_l / 2, xl))
         if (b - a >= 2.0) [a, b]];
 
+// do the ribs run along y? ("auto": along the longer side of the pad)
+function _skin_ribs_y(size, rib_dir) = rib_dir == "y" || (rib_dir == "auto" && size[1] > size[0]);
+
 // one dovetail rib segment along x (narrow neck at z = 0, wide head on top)
 module _skin_rib(a, b, y, neck, head, h)
     translate([a, y, 0]) rotate([90, 0, 90]) linear_extrude(b - a)
         polygon([[-neck / 2, -eps], [neck / 2, -eps], [head / 2, h], [-head / 2, h]]);
 
 module _skin_checks(size, skin_t, lip_t, lip_w, rim_w, proud, ch, r,
-                    rib_h, rib_neck, rib_head, rib_pitch, seg_l, rib_gap, rib_inset, ribs) {
+                    rib_h, rib_neck, rib_head, rib_pitch, seg_l, rib_gap, rib_inset, ribs, rib_dir) {
+    assert(rib_dir == "auto" || rib_dir == "x" || rib_dir == "y", "rib_dir must be \"auto\", \"x\" or \"y\"");
     assert(skin_t >= min_tpu, "skin_t must be >= min_tpu (1.2 mm)");
     assert(!ribs || skin_t >= rib_h + 3 * layer_h - 1e-6,
            "skin_t must leave >= 3 TPU layers over the ribs (skin_t >= rib_h + 0.6), or set ribs = false");
@@ -217,6 +276,7 @@ module _skin_checks(size, skin_t, lip_t, lip_w, rim_w, proud, ch, r,
     assert(!ribs || rib_pitch - rib_head >= min_tpu - 1e-6, "TPU key between rib heads < min_tpu: raise rib_pitch");
     assert(!ribs || rib_gap >= anchor_gap_z - 1e-6, "rib_gap must be >= anchor_gap_z");
     assert(!ribs || rib_inset >= min_tpu - 1e-6, "rib_inset must be >= min_tpu");
+    assert(!ribs || seg_l >= 2.0, "seg_l must be >= 2 mm (shorter rib segments are dropped)");
 }
 
 // -----------------------------------------------------------------------
@@ -226,9 +286,10 @@ module _skin_checks(size, skin_t, lip_t, lip_w, rim_w, proud, ch, r,
 module skin_anchor_petg(size = [40, 20], skin_t = 2.0, lip_t = 1.2, lip_w = 1.6, rim_w = 2.0,
                         proud = 1.0, ch = 0.6, r = 3,
                         rib_h = anchor_depth, rib_neck = anchor_neck, rib_head = anchor_head,
-                        rib_pitch = 4.0, seg_l = 5.0, rib_gap = 1.6, rib_inset = 2.0, ribs = true) {
+                        rib_pitch = 4.0, seg_l = 5.0, rib_gap = 1.6, rib_inset = 2.0, ribs = true,
+                        rib_dir = "auto") {
     _skin_checks(size, skin_t, lip_t, lip_w, rim_w, proud, ch, r,
-                 rib_h, rib_neck, rib_head, rib_pitch, seg_l, rib_gap, rib_inset, ribs);
+                 rib_h, rib_neck, rib_head, rib_pitch, seg_l, rib_gap, rib_inset, ribs, rib_dir);
     H = skin_t + lip_t;
     // rim wall
     translate([0, 0, -eps]) linear_extrude(H + eps) difference() {
@@ -241,25 +302,27 @@ module skin_anchor_petg(size = [40, 20], skin_t = 2.0, lip_t = 1.2, lip_w = 1.6,
         _skin_opening_2d(size, lip_w, r);
     }
     // staggered dovetail rib segments, kept rib_inset clear of the pocket wall
+    // (each row is cut to the length that fits, so the ends stay square)
     if (ribs) {
-        rows = _skin_rows(size, rib_inset, rib_head, rib_pitch);
-        xl = size[0] / 2 - rib_inset;
-        if (len(rows) > 0) intersection() {
-            union() for (j = [0 : len(rows) - 1])
+        ay = _skin_ribs_y(size, rib_dir);
+        sz = ay ? [size[1], size[0]] : size;
+        rows = _skin_rows(sz, rib_inset, rib_head, rib_pitch);
+        if (len(rows) > 0) rotate([0, 0, ay ? 90 : 0])
+            for (j = [0 : len(rows) - 1])
+                let(xl = _skin_row_xl(sz, r, rib_inset, abs(rows[j]) + rib_head / 2))
                 for (s = _skin_segs(xl, seg_l, rib_gap, (j % 2) * (seg_l + rib_gap) / 2))
                     _skin_rib(s[0], s[1], rows[j], rib_neck, rib_head, rib_h);
-            translate([0, 0, -1]) linear_extrude(rib_h + 2)
-                offset(delta = -rib_inset) _skin_pocket_2d(size, r);
-        }
     }
 }
 
 // TPU region on a face at z = 0: the pocket under the lip, the lip opening,
-// and the proud contact pad with a chamfered top edge.
+// and the proud contact pad with a chamfered top edge. (The rib parameters
+// are accepted, and ignored, so both helpers take the same argument list.)
 module skin_tpu_region(size = [40, 20], skin_t = 2.0, lip_t = 1.2, lip_w = 1.6, rim_w = 2.0,
                        proud = 1.0, ch = 0.6, r = 3,
                        rib_h = anchor_depth, rib_neck = anchor_neck, rib_head = anchor_head,
-                       rib_pitch = 4.0, seg_l = 5.0, rib_gap = 1.6, rib_inset = 2.0, ribs = true) {
+                       rib_pitch = 4.0, seg_l = 5.0, rib_gap = 1.6, rib_inset = 2.0, ribs = true,
+                       rib_dir = "auto") {
     H = skin_t + lip_t;
     linear_extrude(skin_t) _skin_pocket_2d(size, r);                  // under the lip
     translate([0, 0, skin_t - eps]) linear_extrude(lip_t + 2 * eps)   // through the lip opening
@@ -281,12 +344,15 @@ module skin_tpu_region(size = [40, 20], skin_t = 2.0, lip_t = 1.2, lip_w = 1.6, 
 module skin_anchor(part, size = [40, 20], skin_t = 2.0, lip_t = 1.2, lip_w = 1.6, rim_w = 2.0,
                    proud = 1.0, ch = 0.6, r = 3,
                    rib_h = anchor_depth, rib_neck = anchor_neck, rib_head = anchor_head,
-                   rib_pitch = 4.0, seg_l = 5.0, rib_gap = 1.6, rib_inset = 2.0, ribs = true)
+                   rib_pitch = 4.0, seg_l = 5.0, rib_gap = 1.6, rib_inset = 2.0, ribs = true,
+                   rib_dir = "auto")
     hybrid(part) {
-        skin_anchor_petg(size, skin_t, lip_t, lip_w, rim_w, proud, ch, r,
-                         rib_h, rib_neck, rib_head, rib_pitch, seg_l, rib_gap, rib_inset, ribs);
-        skin_tpu_region(size, skin_t, lip_t, lip_w, rim_w, proud, ch, r,
-                        rib_h, rib_neck, rib_head, rib_pitch, seg_l, rib_gap, rib_inset, ribs);
+        skin_anchor_petg(size = size, skin_t = skin_t, lip_t = lip_t, lip_w = lip_w, rim_w = rim_w,
+                         proud = proud, ch = ch, r = r, rib_h = rib_h, rib_neck = rib_neck,
+                         rib_head = rib_head, rib_pitch = rib_pitch, seg_l = seg_l, rib_gap = rib_gap,
+                         rib_inset = rib_inset, ribs = ribs, rib_dir = rib_dir);
+        skin_tpu_region(size = size, skin_t = skin_t, lip_t = lip_t, lip_w = lip_w, rim_w = rim_w,
+                        proud = proud, ch = ch, r = r);
     }
 
 // PETG plate (z = 0 .. base_t) with a captured TPU pad on its top face.
@@ -294,24 +360,36 @@ module skin_pad(part, size = [40, 20], base_t = 3, skin_t = 2.0, lip_t = 1.2, li
                 proud = 1.0, ch = 0.6, r = 3,
                 rib_h = anchor_depth, rib_neck = anchor_neck, rib_head = anchor_head,
                 rib_pitch = 4.0, seg_l = 5.0, rib_gap = 1.6, rib_inset = 2.0, ribs = true,
-                margin = 0, holes = [], hole_d = 3.4) {
+                margin = 0, holes = [], hole_d = 3.4, rib_dir = "auto") {
     m = is_list(margin) ? margin : [margin, margin];
+    R = [size[0] / 2 + rim_w, size[1] / 2 + rim_w];      // rim outside (half sizes)
+    Q = R + m;                                           // plate (half sizes)
     assert(base_t >= min_petg, "base_t must be >= min_petg");
     assert(hole_d >= 1.6, "holes must be >= 1.6 mm");
+    // a hole must sit in the margin: clear of the rim (else it undercuts the
+    // rim and leaves it bridging over the hole) and min_petg from the plate edge
+    for (h = holes) {
+        assert(abs(h[0]) - hole_d / 2 >= R[0] - 1e-6 || abs(h[1]) - hole_d / 2 >= R[1] - 1e-6,
+               str("hole at ", h, " is under the rim: put holes in the margin"));
+        assert(abs(h[0]) + hole_d / 2 + min_petg <= Q[0] + 1e-6 && abs(h[1]) + hole_d / 2 + min_petg <= Q[1] + 1e-6,
+               str("hole at ", h, " leaves < min_petg to the plate edge: widen the margin"));
+    }
     hybrid(part) {
         difference() {
             union() {
                 linear_extrude(base_t)
-                    _skin_rrect(size + [2, 2] * rim_w + 2 * m, r + rim_w + min(m[0], m[1]));
+                    _skin_rrect(2 * Q, r + rim_w + min(m[0], m[1]));
                 translate([0, 0, base_t])
-                    skin_anchor_petg(size, skin_t, lip_t, lip_w, rim_w, proud, ch, r,
-                                     rib_h, rib_neck, rib_head, rib_pitch, seg_l, rib_gap, rib_inset, ribs);
+                    skin_anchor_petg(size = size, skin_t = skin_t, lip_t = lip_t, lip_w = lip_w, rim_w = rim_w,
+                                     proud = proud, ch = ch, r = r, rib_h = rib_h, rib_neck = rib_neck,
+                                     rib_head = rib_head, rib_pitch = rib_pitch, seg_l = seg_l, rib_gap = rib_gap,
+                                     rib_inset = rib_inset, ribs = ribs, rib_dir = rib_dir);
             }
             for (h = holes) translate([h[0], h[1], -1]) cylinder(d = hole_d, h = base_t + 2, $fn = 32);
         }
         translate([0, 0, base_t])
-            skin_tpu_region(size, skin_t, lip_t, lip_w, rim_w, proud, ch, r,
-                            rib_h, rib_neck, rib_head, rib_pitch, seg_l, rib_gap, rib_inset, ribs);
+            skin_tpu_region(size = size, skin_t = skin_t, lip_t = lip_t, lip_w = lip_w, rim_w = rim_w,
+                            proud = proud, ch = ch, r = r);
     }
 }
 
@@ -321,7 +399,8 @@ module skin_peel_coupon(part, size = [35, 12], base_t = 3, skin_t = 2.0, lip_t =
                         rim_w = 2.0, proud = 1.0, ch = 0.6, r = 3,
                         rib_h = anchor_depth, rib_neck = anchor_neck, rib_head = anchor_head,
                         rib_pitch = 4.0, seg_l = 5.0, rib_gap = 1.6, rib_inset = 2.0, ribs = true,
-                        grip_l = 15, tab_t = 1.6, tail_l = 40, tab_overlap = 8, tab_wall = 2, hole_d = 6) {
+                        grip_l = 15, tab_t = 1.6, tail_l = 40, tab_overlap = 8, tab_wall = 2, hole_d = 6,
+                        rib_dir = "auto") {
     L = grip_l + size[0] + 2 * rim_w;        // plate length
     W = size[1] + 2 * rim_w;                 // plate width
     cx = L - rim_w - size[0] / 2;            // pad centre
@@ -329,21 +408,25 @@ module skin_peel_coupon(part, size = [35, 12], base_t = 3, skin_t = 2.0, lip_t =
     tw = size[1];                            // tab width (12 mm, as coupon P)
     top = base_t + H + tab_t;
     x_tab = cx + size[0] / 2 - tab_overlap;  // where the tab joins the pad top
+    assert(grip_l >= hole_d + 2 * min_petg, "grip_l too short for the clamp hole");
+    assert(tab_overlap > lip_w && tab_overlap < size[0], "tab_overlap must reach past the lip and stay on the pad");
     hybrid(part) {
         difference() {
             union() {
                 translate([0, -W / 2, 0]) cube([L, W, base_t]);
                 translate([cx, 0, base_t])
-                    skin_anchor_petg(size, skin_t, lip_t, lip_w, rim_w, proud, ch, r,
-                                     rib_h, rib_neck, rib_head, rib_pitch, seg_l, rib_gap, rib_inset, ribs);
+                    skin_anchor_petg(size = size, skin_t = skin_t, lip_t = lip_t, lip_w = lip_w, rim_w = rim_w,
+                                     proud = proud, ch = ch, r = r, rib_h = rib_h, rib_neck = rib_neck,
+                                     rib_head = rib_head, rib_pitch = rib_pitch, seg_l = seg_l, rib_gap = rib_gap,
+                                     rib_inset = rib_inset, ribs = ribs, rib_dir = rib_dir);
             }
-            translate([8, 0, -1]) cylinder(d = hole_d, h = base_t + 2, $fn = 40);
+            translate([min(8, grip_l / 2), 0, -1]) cylinder(d = hole_d, h = base_t + 2, $fn = 40);
         }
         difference() {
             union() {
                 translate([cx, 0, base_t])
-                    skin_tpu_region(size, skin_t, lip_t, lip_w, rim_w, proud, ch, r,
-                                    rib_h, rib_neck, rib_head, rib_pitch, seg_l, rib_gap, rib_inset, ribs);
+                    skin_tpu_region(size = size, skin_t = skin_t, lip_t = lip_t, lip_w = lip_w, rim_w = rim_w,
+                                    proud = proud, ch = ch, r = r);
                 // tab over the far rim (fills down to the plate where the rim corners round off)
                 translate([x_tab, -tw / 2, base_t]) cube([L - x_tab + eps, tw, H + tab_t]);
                 // down the plate end, then flat along the bed
