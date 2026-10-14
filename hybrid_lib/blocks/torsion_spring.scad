@@ -64,13 +64,13 @@ include <../params.scad>
 //     the shaft corners also start to press into the cord tips, so the
 //     spring gets progressively stiffer towards the design twist (a soft
 //     bump stop). The air strips and the hollow cores give the nearly
-//     incompressible TPU room to move; filled pockets would be ~7x stiffer.
+//     incompressible TPU room to move; filled pockets would be ~15x stiffer.
 //
 // PRINTING (Bambu Lab H2D: PETG left nozzle, TPU 95A right; no supports)
 //   As modelled, flange on the bed. Shaft foot and bottom lip start on the
 //   bed; the shaft's cones overhang 45 deg over the lip with 0.6 mm air; the
 //   cords start on the bottom lip; the top lip is printed on the cords (PETG
-//   on TPU) and bridges <= 1.9 mm over the air strips (thanks to the ribs)
+//   on TPU) and bridges <= 2.1 mm over the air strips (thanks to the ribs)
 //   and the cores. Print the TPU solid (100 % infill, or >= 4 walls) for the
 //   stiffness below; lower TPU infill makes it softer and less predictable.
 //   Break the shaft free after printing by twisting it +-30 deg a few times.
@@ -81,7 +81,7 @@ include <../params.scad>
 //                    Torque grows with the cord length Lc = length - z_lb -
 //                    lip_t (13.25 at the defaults); needs Lc >= 4.
 //   wall     = 2.8   tube wall (>= 1.2). Sized so the walls, bent by the cord
-//                    pressure, stay below ~20 MPa at 2 N*m (see ESTIMATES).
+//                    pressure, stay below ~15 MPa at 2 N*m (see ESTIMATES).
 //   shaft    = auto  shaft square side across flats (11.62 at the defaults).
 //                    Rule: the shaft corners, twisted by `twist`, would
 //                    squeeze a cord filling the pocket by at most `strain`:
@@ -93,13 +93,18 @@ include <../params.scad>
 //                    `twist` (TPU 95A takes 50 % locally, repeatedly).
 //   corner_r = 1.0   shaft corner rounding (blunt corners do not cut TPU).
 //   cav_r    = 1.5   tube cavity corner rounding.
-//   relief   = 3.0   half-width of the air strip at each shaft corner. The
-//                    cords touch the shaft faces only over +-s1 = h -
-//                    1.414 relief around each face middle (h = shaft/2):
-//                    the main stiffness knob (bigger = softer, later bump
-//                    stop). Needs s1 >= 0.5; >= 1.5 adds the PETG ribs.
-//   core_d   = 3.0   hollow core in each cord (0 = solid): second stiffness
-//                    knob (~0.45x at 3.0). TPU round it >= 1.2.
+//   relief   = auto  half-width of the air strip at each shaft corner
+//                    (auto = 0.52 h rounded to 0.1 = 3.0 at the defaults;
+//                    h = shaft / 2). The cords touch the shaft faces only
+//                    over +-s1 = h - 1.414 relief around each face middle
+//                    (s1 = 0.27 h): the main stiffness knob (bigger =
+//                    softer and a later bump stop). Needs s1 >= 0.5;
+//                    relief >= 1.5 adds the PETG ribs.
+//   core_d   = auto  hollow core in each cord, centred on the pocket's
+//                    inscribed circle (radius ri, 2.98 at the defaults);
+//                    auto = the biggest with ~1.25 mm of TPU round it
+//                    (3.4 at the defaults); 0 = solid cords (~2.2x stiffer).
+//                    Needs >= 1.2 of TPU round it, also to the cord tips.
 //   bore     = 6.5,  bore_shape = "hex": through bore. 6.5 hex = 1/4" hex
 //                    shaft or screwdriver bit; 5.6 hex = M3 nut / M3 hex
 //                    standoff; "square"; "round" (3.4 = M3 bolt). Needs
@@ -117,7 +122,66 @@ include <../params.scad>
 //   z_lt = length - lip_t.
 //
 // ESTIMATES (TPU 95A E ~ 26 MPa, G ~ 9 MPa; PETG E ~ 2000 MPa, ~45 MPa)
-//@@ESTIMATES@@
+//   Twist stiffness, simple compression model (one cord; h = shaft/2 = the
+//   face's distance from the axis; s = position along the face from its
+//   middle; the cord touches the face over |s| <= s1 = h - 1.414 relief;
+//   pocket depth normal to the face D0 = 1.414 a - h - 0.414 cav_r at the
+//   middle, falling off as t(s) = D0 - |s| towards the tube walls;
+//   t1 = D0 - s1; Lc = cord length):
+//   (a) compression: the face rocks about its middle and presses the cord
+//       by theta*s: p = Ec theta s / t(s), moment p*s, one half of the face:
+//         Mc = Ec Lc theta [D0^2 ln(D0/t1) - D0 s1 - s1^2/2]
+//       Ec = 4/3 E = 35 MPa (long cord: plane strain, nearly incompressible)
+//   (b) drag: the face also slides theta*h along the cord, which sticks to
+//       it (TPU on PETG grips) and shears across its depth: tau = G theta h /
+//       t(s), moment tau*h, whole contact:
+//         Ms = 2 G Lc theta h^2 ln(D0/t1)
+//   k0 = 4 (Mc + Ms) / theta x C_contact(s1/h) x C_core(core_d / 2 ri), where
+//   the C factors come from 2D FEA (below; ri = pocket inradius) and are
+//   1 for solid cords with a long contact.
+//   Defaults: a = 9.2, h = 5.81, D0 = 6.58, s1 = 1.57, t1 = 5.01,
+//     ln(D0/t1) = 0.272, Lc = 13.25:
+//     per cord and mm: Ec x 0.24 mm^3 = 8 (compression) + G x 18.4 mm^3 = 165
+//     (drag) N*mm/rad -> solid cords 4 x 13.25 x 174 = 9200 N*mm/rad
+//     = 161 N*mm/deg; x C_contact(0.27) = 0.78 x C_core(0.57) = 0.47
+//     -> k0 = 59 N*mm per degree (0.059 N*m/deg) at small angles.
+//   So the drag does most of the work: the spring relies on the TPU
+//   gripping the shaft faces. Frictionless (wet, greasy, dusty) FEA gives
+//   ~1/4 of the torque at small angles.
+//   FEA check (CalculiX, 2D plane strain, Neo-Hooke TPU G = 8.8 MPa,
+//   rigid PETG, contact with friction 0.6 and no adhesion), default unit:
+//@@FEA@@
+//   The hand model matched FEA within 4-8 % for solid cords with a long
+//   contact (relief 1 / 2.5: 18.0 vs 17.2, 4.6 vs 5.0 N*mm/deg per mm and
+//   cord); the C factors cover shorter contacts and the hollow cores.
+//   Expect +-30 % on a real print (TPU brand, infill, friction): measure
+//   yours with the test piece and scale.
+//   Stiffness knobs (FEA at 1 deg): length (linear); relief 2.5 -> ~2.1x,
+//   3.5 -> ~0.4x (same cores); core_d 0 (solid) -> ~2.2x, 3.0 -> ~1.2x;
+//   size: ~size^3 at equal proportions.
+//   Strength (PETG, default unit):
+//   - square drive / shaft in torsion (11.62 square, 6.5 hex bore; Saint-
+//     Venant, finite differences): tau = T / 300 mm^3 -> 7 MPa at 2 N*m,
+//     12 MPa at 3.5 N*m. The layer planes carry this shear, so keep
+//     working torque <= ~2 N*m, peaks <= ~4 N*m.
+//   - tube walls: each cord pushes its wall with F ~ T / (4 x 5.3 mm)
+//     (FEA), ~4 mm off the wall middle; as a clamped beam across the cavity
+//     M ~ 0.145 F (2a), sigma = 6 M / (Lc wall^2) -> 12 MPa at 1.7 N*m
+//     (20 deg), ~20 MPa at 3 N*m (the lips at both ends roughly halve this).
+//   - axial: the foot / upper cone bear on the bottom lip's waist; lip rim
+//     in shear 2 pi (R_n + 0.4) rim = 43 mm^2 -> ~600 N to fail; neck in
+//     tension (layers) ~1000 N. Use ~300 N working.
+//   - radial (as a bushing): ~120 N/mm (two cords squeezed, four dragged);
+//     after a - c_tip = 1.4 mm the shaft corners touch the tube walls
+//     (PETG on PETG plain bearing).
+//   - flange: 4 x M3 on a 31 mm square: 34 N per screw at 3 N*m.
+//   TPU strain (FEA): peak stretch at the cord corners 11 % at 5 deg, 24 %
+//   at 10, 36 % at 15, 54 % at 20 deg (peak squeeze 37 %); 95 % of the
+//   cord stays below 20 % at 20 deg. Use ~+-20 deg as the working range
+//   and +-30 deg as the limit.
+//   Sizing example: rover of 4 kg on 4 swing arms 80 mm long: 9.8 N x 80 =
+//   0.78 N*m per pivot -> ~11 deg static sag, ~20 deg left for bumps.
+//   Drone of 1.5 kg landing at 3 g on 4 legs 60 mm long: 0.66 N*m -> ~10 deg.
 //
 // TEST PIECE (show = "test"): torsion_spring_test() - the default unit with
 //   a +-40 deg angle scale on its flange (ticks every 5 deg) and a loose
@@ -160,11 +224,32 @@ include <../params.scad>
 //     TPU strain and the PETG stresses climb fast.
 //
 // LIMITATIONS
-//@@LIMITS@@
+//   - Friction matters: most of the torque comes from the cords gripping
+//     the shaft faces. Keep oil, grease and grit out (the annular gap
+//     round the drive and the air strips are open at the top). A slipping
+//     cord also gives some hysteresis (the shaft may not return the last
+//     degree or two to exactly zero).
+//   - TPU creeps: under a constant torque (a vehicle's weight) the unit
+//     sags a few degrees more over days and takes a set. Design the static
+//     sag <= ~10-15 deg and keep the rest for bumps.
+//   - The estimate is +-30 % (TPU brand and infill, friction, print
+//     squish). Calibrate with the test piece. FEA with friction converged
+//     to 20 deg; beyond that the numbers above are the frictionless shape
+//     scaled (see the table).
+//   - PETG torque limit ~2 N*m working / ~4 N*m peak at the default size
+//     (walls and the drive's layer planes); bigger units scale ~size^3.
+//   - A bushing, not a precision bearing: 0.6 mm axial play, ~1/120 mm
+//     per N radially, and it tilts under a bending moment. Keep the arm
+//     close to the tube top, or carry big side loads on a separate pin.
+//   - TPU stiffens in the cold (much below 0 C) and softens when hot;
+//     PETG is fine to ~70 C.
+//   - The capture check treats the TPU as rigid. A very large twist could
+//     roll a cord partly out of its pocket at the open top (between the
+//     drive and the top lip); stop the swing at ~+-30 deg.
 // =======================================================================
 
 part = "both";   // [petg, tpu, both]
-show = "demo";   // [demo, test, section]
+show = "demo";   // [demo, test, section, slice]
 
 ts_fn = 72;      // round parts; divisible by 6 and 8 so hex and 45 deg points are facet vertices
 
@@ -173,7 +258,7 @@ ts_fn = 72;      // round parts; divisible by 6 and 8 so hex and 45 deg points a
 // -----------------------------------------------------------------------
 ts_size = 24;      ts_length = 20;    ts_wall = 2.8;
 ts_twist = 30;     ts_strain = 0.5;   ts_corner_r = 1.0;  ts_cav_r = 1.5;
-ts_relief = 3.0;   ts_core_d = 3.0;
+ts_relief = undef; ts_core_d = undef;   // undef = auto (see PARAMETERS)
 ts_bore = 6.5;     ts_bore_shape = "hex";
 ts_drive_h = 4;    ts_lip_t = 1.6;    ts_rim = 1.2;
 ts_flange_w = 7;   ts_flange_t = 3;   ts_hole_d = 3.4;
@@ -200,6 +285,10 @@ function ts_geom(size = ts_size, length = ts_length, wall = ts_wall, shaft = und
         c = B / sqrt(2),
         c_tip = c - corner_r * (sqrt(2) - 1),
         h = B / 2,
+        ri = (2 * a - c) * (2 - sqrt(2)) / 2,        // inradius of a corner pocket
+        relief = is_undef(relief) ? round(10 * 0.52 * h) / 10 : relief,
+        core_auto = floor(10 * 2 * (ri - 1.25)) / 10,
+        core_d = is_undef(core_d) ? (core_auto >= 1.6 ? core_auto : 0) : core_d,
         bore_rc = bore_shape == "hex" ? bore / sqrt(3) : bore_shape == "square" ? bore / sqrt(2) : bore / 2,
         R_n = max(bore_rc + min_petg + 0.3, 2.5),     // neck radius (passes the bottom lip)
         R_f = R_n + xy_clear + min_petg,             // foot radius on the bed (under the lip)
@@ -209,7 +298,6 @@ function ts_geom(size = ts_size, length = ts_length, wall = ts_wall, shaft = und
         z_lb = z_b1 - z_clear,                       // bottom lip top = cord bottom
         z_lt = length - lip_t,                       // top lip underside = cord top
         z_tpu0 = z_n1 - z_clear + max(h, R_n + xy_clear) - R_n,   // lowest TPU (wedge under the face middle)
-        ri = (2 * a - c) * (2 - sqrt(2)) / 2,        // inradius of a corner pocket
         r_core = sqrt(2) * (a - ri),
         D0 = sqrt(2) * a - h - cav_r * (sqrt(2) - 1),
         s1 = h - sqrt(2) * relief)
@@ -225,18 +313,20 @@ function ts_geom(size = ts_size, length = ts_length, wall = ts_wall, shaft = und
 // Estimates (see ESTIMATES in the header)
 // -----------------------------------------------------------------------
 // initial twist stiffness, N*mm per degree: [total, compression part, drag part]
+// (simple compression model x FEA calibration; see ESTIMATES)
 function ts_k(g, E = 26, G = 9) =
     let(D0 = ts_v(g, "D0"), s1 = ts_v(g, "s1"), h = ts_v(g, "h"), t1 = D0 - s1, lg = ln(D0 / t1),
         Ic = D0 * D0 * lg - D0 * s1 - s1 * s1 / 2,
         Is = 2 * h * h * lg,
-        f = ts_core_factor(ts_v(g, "core_d") / (2 * ts_v(g, "ri"))),
+        f = lookup(s1 / h, ts_contact_table) * lookup(ts_v(g, "core_d") / (2 * ts_v(g, "ri")), ts_core_table),
         kc = 4 * ts_v(g, "Lc") * (4 / 3) * E * Ic * f * PI / 180,
         ks = 4 * ts_v(g, "Lc") * G * Is * f * PI / 180)
     [kc + ks, kc, ks];
-// hollow cords: FEA factor on the solid-cord stiffness vs core_d / (2 * ri)
-ts_core_table = [[0, 1], [1, 1]];   // placeholder
-function ts_core_factor(q) = q <= 0 ? 1 : lookup(q, ts_core_table);
-// torque-per-degree multiplier (secant) vs twist angle, from FEA: progressive
+// hand model / FEA (2D plane strain, stick friction), solid cords, vs the contact ratio s1 / h
+ts_contact_table = [[0, 0.45], [0.15, 0.59], [0.27, 0.78], [0.39, 0.93], [0.76, 1.04], [1, 1.05]];
+// hollow cords: FEA factor vs core_d / (2 * ri)  (0.6 and up extrapolated)
+ts_core_table = [[0, 1], [0.5, 0.56], [0.57, 0.47], [0.7, 0.33], [1, 0.2]];
+// secant torque-per-degree multiplier vs twist (FEA of the default unit, stick friction)
 ts_prog_table = [[0, 1], [40, 1]];  // placeholder
 function ts_torque(g, deg) = ts_k(g)[0] * deg * lookup(abs(deg), ts_prog_table);
 

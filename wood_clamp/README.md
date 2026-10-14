@@ -218,15 +218,19 @@ diameter + 0.44). If it comes out larger by some amount, rebuild with
 
   | Closed collar, fins modelled as springs | typical TPU | stiff TPU |
   |---|---|---|
-  | Cam force | 216 N | 283 N |
-  | Squeeze on the wood, min / average / max | 0.23 / 0.32 / 0.56 mm | 0.18 / 0.28 / 0.57 mm |
-  | Average pressure on the wood | 0.23 MPa | 0.31 MPa |
-  | Stress, 99.5 % of the part below / highest | 8.3 / 14.8 MPa | 10.9 / 19.4 MPa |
-  | Across the layers, highest / at the pin | 8.4 / 3.9 MPa | 10.9 / 5.2 MPa |
+  | Cam force | 213 N | 277 N |
+  | Squeeze on the wood, min / average / max | 0.23 / 0.31 / 0.53 mm | 0.18 / 0.27 / 0.55 mm |
+  | Average pressure on the wood | 0.22 MPa | 0.31 MPa |
+  | Stress, 99.5 % of the part below / highest | 8.7 / 16.0 MPa | 11.3 / 20.7 MPa |
+  | Across the layers, highest / at the pin | 7.8 / 4.6 MPa | 10.2 / 5.9 MPa |
 
-  Even if the fins jammed solid (about 430 N on the cam), the stress across
-  the layers stays near 8 MPa at the pin and 17 MPa at the worst knuckle
-  corner. The lever was checked with the worst-case loads from the rigid
+  The highest stress across the layers is in the sharp inside corner where the
+  ear the cam presses meets the outside of the ring; 0.5 mm away it is already
+  below 6 MPa. Even if
+  the fins jammed solid (about 430 N on the cam), the stress across the layers
+  stays near 9 MPa at the pin and 16 MPa in that corner. The FEA model leaves
+  out the small lining-lock features (lips, ribs, end walls); they only add
+  material on the inside of the bore. The lever was checked with the worst-case loads from the rigid
   model (stiff TPU, wood 0.4 mm oversize: about 600 N on the cam and 68 N on
   the handle, roughly twice the realistic values). Closed, its highest stress is 11.5 MPa (4.1 MPa across the
   layers). While it is being pushed, 99.5 % of it is below 11.4 MPa. The model
